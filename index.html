@@ -824,6 +824,51 @@
     margin-top:8px;
   }
   .admin-add-row input{flex:1; min-width:120px;}
+  .delivery-admin-group{
+    border:1px solid var(--line);
+    border-radius:6px;
+    margin-bottom:10px;
+    padding:8px 10px;
+    background:#fffefc;
+  }
+  .delivery-admin-group summary{
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:600;
+    font-family:'Tajawal', sans-serif;
+    list-style:none;
+  }
+  .delivery-admin-group summary::-webkit-details-marker{display:none;}
+  .delivery-admin-group summary input{
+    flex:1;
+    min-width:0;
+    font-weight:700;
+  }
+  .delivery-admin-count{
+    font-size:11px;
+    color:#93897c;
+    white-space:nowrap;
+    font-family:'Tajawal', sans-serif;
+  }
+  .delivery-admin-areas{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin:10px 0;
+    max-height:340px;
+    overflow-y:auto;
+    padding-left:4px;
+  }
+  .delivery-admin-area-row{
+    display:flex;
+    gap:6px;
+    align-items:center;
+  }
+  .delivery-admin-area-row input[data-role="area-label"]{flex:1; min-width:0;}
+  .delivery-admin-area-row input[data-role="area-fee"]{width:70px; flex:0 0 auto;}
+  .delivery-admin-group > .admin-mini-btn.danger{margin-top:8px;}
   .admin-wa-row, .admin-user-row{
     display:flex;
     align-items:center;
@@ -946,6 +991,16 @@
       </div>
 
       <div class="admin-settings-section">
+        <h4>مناطق التوصيل والأسعار</h4>
+        <div id="deliveryAreasAdmin"></div>
+        <div class="admin-add-row">
+          <input id="newBranchLabelInput" type="text" placeholder="اسم فرع/منطقة رئيسية جديدة">
+          <button class="admin-mini-btn" id="addBranchBtn" type="button">+ إضافة فرع جديد</button>
+        </div>
+        <div class="admin-save-note">التعديل هنا بيتحفظ فوراً ويظهر على العميل مباشرة.</div>
+      </div>
+
+      <div class="admin-settings-section">
         <h4>المستخدمين — صلاحية فتح/قفل الأقسام والأصناف بس</h4>
         <div id="staffUsersList"></div>
         <div class="admin-add-row">
@@ -1024,15 +1079,11 @@
         </div>
 
         <div class="area-search-wrap" id="areaSearchWrap" style="display:none;">
-          <label for="areaSearch">ابحث عن منطقتك</label>
-          <input id="areaSearch" type="search" placeholder="اكتب اسم المنطقة..." autocomplete="off">
+          <label for="areaSearch">منطقة التوصيل</label>
+          <input id="areaSearch" type="text" list="areaOptionsList" placeholder="اكتب اسم منطقتك أو اختارها من القائمة..." autocomplete="off" inputmode="search">
+          <datalist id="areaOptionsList"></datalist>
           <div class="area-count" id="areaCount"></div>
         </div>
-
-        <label for="deliveryZone">منطقة التوصيل</label>
-        <select id="deliveryZone" disabled>
-          <option value="">اختار الفرع أولاً</option>
-        </select>
       </div>
 
       <div class="totals" id="totals" style="display:none;">
@@ -1180,7 +1231,7 @@
   // ---------- Delivery fees (edit freely) ----------
   // Delivery areas transcribed from the supplied Desouk and Kafr El-Sheikh lists.
   // Each group keeps similarly named places in different cities/areas distinct.
-  const DELIVERY_GROUPS = [
+  const DEFAULT_DELIVERY_GROUPS = [
     {
       id: "desouk",
       label: "دسوق",
@@ -1253,7 +1304,7 @@
     },
     {
       id: "kafr-far",
-      label: "كفر الشيخ — مناطق بعيدة",
+      label: "كفر الشيخ خارجي",
       areas: [
         ["دقلت",90], ["أبو طبل",35],
         ["مسير",100], ["عزبة ابو عمر",40],
@@ -1285,19 +1336,59 @@
     },
   ];
 
-  const DELIVERY_OPTIONS = [
-    { id: "pickup", label: "استلام من الفرع (بدون توصيل)", fee: 0, group: "استلام من الفرع" },
-  ];
-  DELIVERY_GROUPS.forEach(group => {
-    group.areas.forEach(([label, fee], index) => {
-      DELIVERY_OPTIONS.push({
-        id: `${group.id}-${index}`,
-        label,
-        fee,
-        group: group.label,
+  const DELIVERY_STORAGE_KEY = 'maxez_delivery_v1';
+  function loadDeliveryGroups(){
+    try{
+      const saved = localStorage.getItem(DELIVERY_STORAGE_KEY);
+      if(saved){
+        const parsed = JSON.parse(saved);
+        if(Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    }catch(e){}
+    return JSON.parse(JSON.stringify(DEFAULT_DELIVERY_GROUPS));
+  }
+  function saveDeliveryGroups(){
+    localStorage.setItem(DELIVERY_STORAGE_KEY, JSON.stringify(DELIVERY_GROUPS));
+    apiSet('delivery', DELIVERY_GROUPS);
+  }
+  async function syncDeliveryFromServer(){
+    const remote = await apiGet('delivery');
+    if(Array.isArray(remote) && remote.length){
+      DELIVERY_GROUPS = remote;
+      localStorage.setItem(DELIVERY_STORAGE_KEY, JSON.stringify(DELIVERY_GROUPS));
+      rebuildDeliveryOptions();
+      renderDeliveryOptions();
+      renderTicket();
+      if(typeof buildDeliveryAreasAdmin === 'function' && adminPanel && adminPanel.classList.contains('open')) buildDeliveryAreasAdmin();
+    }
+  }
+
+  let DELIVERY_GROUPS = loadDeliveryGroups();
+
+  let DELIVERY_OPTIONS = [];
+  function rebuildDeliveryOptions(){
+    DELIVERY_OPTIONS = [
+      { id: "pickup", label: "استلام من الفرع (بدون توصيل)", fee: 0, group: "استلام من الفرع" },
+    ];
+    DELIVERY_GROUPS.forEach(group => {
+      group.areas.forEach(([label, fee], index) => {
+        DELIVERY_OPTIONS.push({
+          id: `${group.id}-${index}`,
+          label,
+          fee,
+          group: group.label,
+        });
       });
     });
-  });
+  }
+  rebuildDeliveryOptions();
+
+  function commitDeliveryChange(){
+    rebuildDeliveryOptions();
+    saveDeliveryGroups();
+    renderDeliveryOptions();
+    renderTicket();
+  }
 
   // ---------- Offer images (base64, for "عروض الأجازة") ----------
   const OFFER_IMAGES = {
@@ -1740,7 +1831,7 @@
     const areaSearch = document.getElementById('areaSearch');
     const areaSearchWrap = document.getElementById('areaSearchWrap');
     const areaCount = document.getElementById('areaCount');
-    const select = document.getElementById('deliveryZone');
+    const areaOptionsList = document.getElementById('areaOptionsList');
 
     branchSelect.innerHTML =
       '<option value="">اختار الفرع أولاً</option>' +
@@ -1748,81 +1839,88 @@
         `<option value="${group.id}">${group.label}</option>`
       ).join('');
 
+    function optionText(label, fee){
+      return `${label} — ${fee} ${CURRENCY}`;
+    }
+
+    function currentGroup(){
+      return DELIVERY_GROUPS.find(g => g.id === branchSelect.value);
+    }
+
     function renderAreas(){
-      const branchId = branchSelect.value;
-      const group = DELIVERY_GROUPS.find(g => g.id === branchId);
+      const group = currentGroup();
       const query = areaSearch.value.trim().toLowerCase();
 
       if(!group){
         areaSearchWrap.style.display = 'none';
-        select.disabled = true;
-        select.innerHTML = '<option value="">اختار الفرع أولاً</option>';
+        areaSearch.disabled = true;
+        areaSearch.value = '';
+        areaOptionsList.innerHTML = '';
         areaCount.textContent = '';
+        areaSearch.dataset.selectedIndex = '';
         return;
       }
+
+      areaSearch.disabled = false;
 
       const filtered = group.areas
         .map(([label, fee], index) => ({ label, fee, index }))
         .filter(({label}) => label.toLowerCase().includes(query));
 
-      select.disabled = false;
-      select.innerHTML =
-        '<option value="">اختار منطقة التوصيل</option>' +
-        filtered.map(({label, fee, index}) =>
-          `<option value="${group.id}-${index}">${label} — ${fee} ${CURRENCY}</option>`
+      areaOptionsList.innerHTML = filtered
+        .map(({label, fee, index}) =>
+          `<option value="${optionText(label, fee)}" data-index="${index}"></option>`
         ).join('');
 
       areaSearchWrap.style.display = 'block';
       areaCount.textContent = query
         ? `تم العثور على ${filtered.length} منطقة`
-        : `${group.areas.length} منطقة متاحة في ${group.label}`;
+        : `${group.areas.length} منطقة متاحة في ${group.label} — اكتب أو اختار من القائمة`;
+    }
 
-      // إعادة اختيار المنطقة الحالية إن كانت ما زالت ضمن نتائج البحث
-      if(select.dataset.selectedValue && filtered.some(({index}) =>
-        `${group.id}-${index}` === select.dataset.selectedValue
-      )){
-        select.value = select.dataset.selectedValue;
-      } else {
-        select.value = '';
+    function trySelectFromTypedValue(){
+      const group = currentGroup();
+      if(!group){
+        areaSearch.dataset.selectedIndex = '';
+        renderTicket();
+        return;
       }
+      const typed = areaSearch.value.trim();
+      const matchIndex = group.areas.findIndex(([label, fee]) => optionText(label, fee) === typed);
+      areaSearch.dataset.selectedIndex = matchIndex >= 0 ? String(matchIndex) : '';
+      renderTicket();
     }
 
     branchSelect.addEventListener('change', () => {
       areaSearch.value = '';
-      select.dataset.selectedValue = '';
+      areaSearch.dataset.selectedIndex = '';
       renderAreas();
       renderTicket();
     });
 
-    areaSearch.addEventListener('input', renderAreas);
-
-    select.addEventListener('change', () => {
-      select.dataset.selectedValue = select.value;
-      renderTicket();
+    areaSearch.addEventListener('input', () => {
+      renderAreas();
+      trySelectFromTypedValue();
     });
+    areaSearch.addEventListener('change', trySelectFromTypedValue);
 
     // الاستلام من الفرع يظل متاحًا كخيار مستقل، بدون إجبار المستخدم على اختيار منطقة.
-    select.dataset.selectedValue = '';
+    areaSearch.dataset.selectedIndex = '';
   }
 
   function getSelectedDeliveryFee(){
     const branchSelect = document.getElementById('branchSelect');
-    const select = document.getElementById('deliveryZone');
-
-    // لو المستخدم لم يختر منطقة، لا نحسب رسوم توصيل.
-    if(!select.value){
-      return DELIVERY_OPTIONS[0];
-    }
-
-    const opt = DELIVERY_OPTIONS.find(o => o.id === select.value);
-    if(opt) return opt;
+    const areaSearch = document.getElementById('areaSearch');
 
     const branchId = branchSelect.value;
-    const index = parseInt(select.value.split('-').pop(), 10);
     const group = DELIVERY_GROUPS.find(g => g.id === branchId);
+    const rawIndex = areaSearch && areaSearch.dataset.selectedIndex;
+    const index = rawIndex ? parseInt(rawIndex, 10) : NaN;
+
+    // لو المستخدم لم يختر منطقة صالحة، لا نحسب رسوم توصيل.
     if(group && Number.isInteger(index) && group.areas[index]){
       const [label, fee] = group.areas[index];
-      return { id: select.value, label, fee, group: group.label };
+      return { id: `${group.id}-${index}`, label, fee, group: group.label };
     }
 
     return DELIVERY_OPTIONS[0];
@@ -2110,6 +2208,9 @@
   const newUserNameInput = document.getElementById('newUserNameInput');
   const newUserPassInput = document.getElementById('newUserPassInput');
   const addUserBtn = document.getElementById('addUserBtn');
+  const deliveryAreasAdminEl = document.getElementById('deliveryAreasAdmin');
+  const newBranchLabelInput = document.getElementById('newBranchLabelInput');
+  const addBranchBtn = document.getElementById('addBranchBtn');
 
   const staffPanel = document.getElementById('staffPanel');
   const staffCloseBtn = document.getElementById('staffCloseBtn');
@@ -2452,6 +2553,106 @@
     });
   }
 
+  function buildDeliveryAreasAdmin(){
+    if(!deliveryAreasAdminEl) return;
+
+    deliveryAreasAdminEl.innerHTML = DELIVERY_GROUPS.map((group, gIdx) => `
+      <details class="delivery-admin-group">
+        <summary>
+          <input type="text" value="${escapeAttr(group.label)}" data-role="group-label" data-group="${gIdx}">
+          <span class="delivery-admin-count">${group.areas.length} منطقة</span>
+        </summary>
+        <div class="delivery-admin-areas">
+          ${group.areas.map(([label, fee], aIdx) => `
+            <div class="delivery-admin-area-row">
+              <input type="text" value="${escapeAttr(label)}" data-role="area-label" data-group="${gIdx}" data-area="${aIdx}">
+              <input type="number" value="${fee}" data-role="area-fee" data-group="${gIdx}" data-area="${aIdx}">
+              <button class="admin-mini-btn danger" type="button" data-action="del-area" data-group="${gIdx}" data-area="${aIdx}" title="حذف المنطقة">×</button>
+            </div>
+          `).join('')}
+        </div>
+        <div class="admin-add-row">
+          <input type="text" placeholder="اسم منطقة جديدة" data-role="new-area-label" data-group="${gIdx}">
+          <input type="number" placeholder="سعر" data-role="new-area-fee" data-group="${gIdx}" style="max-width:80px; flex:0 0 auto;">
+          <button class="admin-mini-btn" type="button" data-action="add-area" data-group="${gIdx}">+ إضافة منطقة</button>
+        </div>
+        <button class="admin-mini-btn danger" type="button" data-action="del-group" data-group="${gIdx}">حذف الفرع كله</button>
+      </details>
+    `).join('') || '<div style="font-size:12.5px; color:#7a746c;">مفيش فروع مضافة لسه.</div>';
+
+    deliveryAreasAdminEl.querySelectorAll('input[data-role="group-label"]').forEach(inp => {
+      inp.addEventListener('click', e => e.stopPropagation());
+      inp.addEventListener('change', () => {
+        const g = DELIVERY_GROUPS[parseInt(inp.dataset.group, 10)];
+        if(g){ g.label = inp.value.trim() || g.label; commitDeliveryChange(); }
+      });
+    });
+
+    deliveryAreasAdminEl.querySelectorAll('input[data-role="area-label"]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const g = DELIVERY_GROUPS[parseInt(inp.dataset.group, 10)];
+        const aIdx = parseInt(inp.dataset.area, 10);
+        if(g && g.areas[aIdx]){ g.areas[aIdx][0] = inp.value.trim() || g.areas[aIdx][0]; commitDeliveryChange(); }
+      });
+    });
+
+    deliveryAreasAdminEl.querySelectorAll('input[data-role="area-fee"]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const g = DELIVERY_GROUPS[parseInt(inp.dataset.group, 10)];
+        const aIdx = parseInt(inp.dataset.area, 10);
+        if(g && g.areas[aIdx]){ g.areas[aIdx][1] = parseFloat(inp.value) || 0; commitDeliveryChange(); }
+      });
+    });
+
+    deliveryAreasAdminEl.querySelectorAll('button[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const gIdx = parseInt(btn.dataset.group, 10);
+        const g = DELIVERY_GROUPS[gIdx];
+        if(!g) return;
+
+        if(btn.dataset.action === 'del-area'){
+          const aIdx = parseInt(btn.dataset.area, 10);
+          g.areas.splice(aIdx, 1);
+          commitDeliveryChange();
+          buildDeliveryAreasAdmin();
+        }
+
+        if(btn.dataset.action === 'add-area'){
+          const row = btn.closest('.admin-add-row');
+          const labelInp = row.querySelector('input[data-role="new-area-label"]');
+          const feeInp = row.querySelector('input[data-role="new-area-fee"]');
+          const label = labelInp.value.trim();
+          const fee = parseFloat(feeInp.value) || 0;
+          if(!label){ alert('اكتب اسم المنطقة الأول.'); return; }
+          g.areas.push([label, fee]);
+          commitDeliveryChange();
+          buildDeliveryAreasAdmin();
+        }
+
+        if(btn.dataset.action === 'del-group'){
+          if(DELIVERY_GROUPS.length <= 1){ alert('لازم يفضل فرع واحد على الأقل.'); return; }
+          if(confirm(`تأكيد حذف "${g.label}" وكل مناطقه؟`)){
+            DELIVERY_GROUPS.splice(gIdx, 1);
+            commitDeliveryChange();
+            buildDeliveryAreasAdmin();
+          }
+        }
+      });
+    });
+  }
+
+  if(addBranchBtn){
+    addBranchBtn.addEventListener('click', () => {
+      const label = newBranchLabelInput.value.trim();
+      if(!label){ alert('اكتب اسم الفرع الأول.'); return; }
+      const id = 'branch-' + Math.random().toString(36).slice(2, 8);
+      DELIVERY_GROUPS.push({ id, label, areas: [] });
+      newBranchLabelInput.value = '';
+      commitDeliveryChange();
+      buildDeliveryAreasAdmin();
+    });
+  }
+
   function buildAccountSettingsPanel(){
     changePassNote.textContent = '';
     curPassInput.value = '';
@@ -2459,6 +2660,7 @@
     newPassInput2.value = '';
 
     buildPaymentMethodsSettings();
+    buildDeliveryAreasAdmin();
 
     waNumbersListEl.innerHTML = WHATSAPP_NUMBERS.map(w => `
       <div class="admin-wa-row">
@@ -2736,8 +2938,8 @@
   syncUsersFromServer();
   syncWhatsAppFromServer();
   syncPaymentFromServer();
+  syncDeliveryFromServer();
 </script>
 
 </body>
 </html>
-	
