@@ -769,6 +769,18 @@
   }
   .admin-img-preview img{width:100%; height:100%; object-fit:contain;}
   .admin-item-row-actions{display:flex; gap:6px; margin-top:2px;}
+  .product-schedule{
+    margin-top:10px;
+    padding:9px;
+    border:1px dashed var(--line);
+    border-radius:5px;
+    font-size:12px;
+  }
+  .product-schedule > label{font-weight:700; cursor:pointer;}
+  .schedule-details{display:flex; flex-wrap:wrap; gap:7px; align-items:center; margin-top:8px;}
+  .schedule-details label{display:inline-flex; gap:3px; align-items:center; font-size:11px;}
+  .schedule-details input[type="time"]{width:96px; padding:4px; margin:0;}
+  .schedule-details small{width:100%; color:#7a746c;}
   .admin-panel-foot{
     position:sticky;
     bottom:0;
@@ -1707,6 +1719,31 @@
   const cart = {}; // variantId -> { name, price, qty }
   const variantIndex = {}; // variantId -> { name, price }
 
+  // 0 = الأحد، 6 = السبت. المنتج بدون جدولة يظل متاحاً دائماً.
+  function isScheduledProductAvailable(item, now = new Date()){
+    const schedule = item.schedule;
+    if(!schedule || schedule.enabled !== true) return true;
+
+    const days = Array.isArray(schedule.days) ? schedule.days : [];
+    if(!days.includes(now.getDay())) return false;
+
+    const toMinutes = value => {
+      const [hours, minutes] = String(value || '').split(':').map(Number);
+      return Number.isFinite(hours) && Number.isFinite(minutes)
+        ? hours * 60 + minutes
+        : null;
+    };
+    const start = toMinutes(schedule.start);
+    const end = toMinutes(schedule.end);
+    if(start === null || end === null || start === end) return true;
+
+    const current = now.getHours() * 60 + now.getMinutes();
+    // لو النهاية أصغر من البداية فالجدولة تكمل بعد منتصف الليل.
+    return start < end
+      ? current >= start && current < end
+      : current >= start || current < end;
+  }
+
   function variantId(itemId, sizeLabel){
     return sizeLabel ? `${itemId}__${sizeLabel}` : itemId;
   }
@@ -1727,6 +1764,10 @@
     let visibleIndex = -1;
     MENU.forEach((cat, catIndex) => {
       if(cat.available === false) return; // القسم مقفول مؤقتاً — متبقاش يظهر للزبون
+      const visibleItems = cat.items.filter(item =>
+        item.available !== false && isScheduledProductAvailable(item)
+      );
+      if(!visibleItems.length) return; // لا نعرض قسماً فارغاً خارج مواعيد منتجاته
       visibleIndex++;
       const renderIndex = visibleIndex;
       const isOffer = cat.category === "عروض الأجازة";
@@ -1744,15 +1785,14 @@
       if(renderIndex !== 0) section.classList.add('hidden');
       section.id = `category-${renderIndex}`;
       section.innerHTML = `
-        <h2>${isOffer ? '🔥 ' : ''}${cat.category} <span class="count">${cat.items.filter(it => it.available !== false).length} صنف</span></h2>
+        <h2>${isOffer ? '🔥 ' : ''}${cat.category} <span class="count">${visibleItems.length} صنف</span></h2>
         <hr class="divider">
         <div class="category-items"></div>
       `;
 
       const itemsEl = section.querySelector('.category-items');
 
-      cat.items.forEach(item => {
-        if(item.available === false) return; // موقوف مؤقتاً — لا يظهر للزبون
+      visibleItems.forEach(item => {
 
         const row = document.createElement('div');
         row.className = 'item';
@@ -2352,6 +2392,18 @@
                   <option value="no" ${item.heatChoice === false ? 'selected' : ''}>حار/عادي: بدون اختيار</option>
                 </select>
               </div>
+              <div class="product-schedule">
+                <label><input type="checkbox" data-role="schedule-enabled" data-cat="${catIdx}" data-item="${itemIdx}" ${item.schedule?.enabled ? 'checked' : ''}> جدولة ظهور الصنف</label>
+                <div class="schedule-details" ${item.schedule?.enabled ? '' : 'hidden'}>
+                  <span>الأيام:</span>
+                  ${[['الأحد',0],['الاثنين',1],['الثلاثاء',2],['الأربعاء',3],['الخميس',4],['الجمعة',5],['السبت',6]].map(([label, day]) =>
+                    `<label><input type="checkbox" data-role="schedule-day" data-cat="${catIdx}" data-item="${itemIdx}" value="${day}" ${item.schedule?.days?.includes(day) ? 'checked' : ''}> ${label}</label>`
+                  ).join('')}
+                  <label>من <input type="time" data-role="schedule-start" data-cat="${catIdx}" data-item="${itemIdx}" value="${escapeAttr(item.schedule?.start || '')}"></label>
+                  <label>إلى <input type="time" data-role="schedule-end" data-cat="${catIdx}" data-item="${itemIdx}" value="${escapeAttr(item.schedule?.end || '')}"></label>
+                  <small>لو وقت البداية أكبر من النهاية، الجدولة تمتد بعد منتصف الليل.</small>
+                </div>
+              </div>
               <div class="admin-sizes">${sizesHtml}
                 <button class="admin-mini-btn" type="button" data-action="add-size" data-cat="${catIdx}" data-item="${itemIdx}">+ سعر/حجم</button>
               </div>
@@ -2375,8 +2427,8 @@
     adminCategoriesEl.querySelectorAll('input[data-role], textarea[data-role]').forEach(inp => {
       inp.addEventListener('input', handleAdminFieldChange);
     });
-    adminCategoriesEl.querySelectorAll('select[data-role="item-heat"]').forEach(sel => {
-      sel.addEventListener('change', handleAdminFieldChange);
+    adminCategoriesEl.querySelectorAll('select[data-role="item-heat"], input[data-role^="schedule-"]').forEach(el => {
+      el.addEventListener('change', handleAdminFieldChange);
     });
     adminCategoriesEl.querySelectorAll('button[data-action]').forEach(btn => {
       btn.addEventListener('click', handleAdminAction);
@@ -2439,6 +2491,22 @@
 
     if(role === 'item-name'){ item.name = el.value; return; }
     if(role === 'item-desc'){ item.desc = el.value; return; }
+    if(role && role.startsWith('schedule-')){
+      item.schedule ||= { enabled:false, days:[], start:'', end:'' };
+      if(role === 'schedule-enabled'){
+        item.schedule.enabled = el.checked;
+        if(el.checked && !item.schedule.days.length) item.schedule.days = [0,1,2,3,4,5,6];
+        buildAdminPanel();
+      }
+      if(role === 'schedule-day'){
+        item.schedule.days = [...adminCategoriesEl.querySelectorAll(`input[data-role="schedule-day"][data-cat="${catIdx}"][data-item="${itemIdx}"]:checked`)]
+          .map(input => parseInt(input.value, 10));
+        renderMenu();
+      }
+      if(role === 'schedule-start'){ item.schedule.start = el.value; renderMenu(); }
+      if(role === 'schedule-end'){ item.schedule.end = el.value; renderMenu(); }
+      return;
+    }
     if(role === 'item-heat'){
       if(el.value === 'yes') item.heatChoice = true;
       else if(el.value === 'no') item.heatChoice = false;
