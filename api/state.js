@@ -12,7 +12,7 @@ const redis = new Redis({
 });
 
 // المفاتيح المسموح بالتعامل معها بس (حماية بسيطة عشان محدش يبعت مفتاح عشوائي)
-const ALLOWED_KEYS = new Set(['menu', 'users', 'whatsapp', 'payment']);
+const ALLOWED_KEYS = new Set(['menu', 'users', 'whatsapp', 'payment', 'delivery']);
 
 // بادئة لكل مفتاح عشان لو استخدمت نفس الـ KV database لمشاريع تانية
 const PREFIX = 'maxez:';
