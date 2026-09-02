@@ -560,6 +560,22 @@
     font-family:'Tajawal',sans-serif;
   }
 
+  /* ---------- Automatic schedules / countdown ---------- */
+  .schedule-countdown{display:inline-flex;align-items:center;gap:6px;margin:4px 0 12px;padding:6px 9px;border:1px dashed rgba(140,31,31,.32);border-radius:999px;background:rgba(140,31,31,.06);color:var(--rust);font-family:'IBM Plex Mono',monospace;font-size:10.5px;}
+  .schedule-countdown strong{font-weight:600;}
+  .admin-schedule-box{margin-top:10px;padding:10px;border:1px dashed rgba(33,29,26,.22);border-radius:6px;background:rgba(239,231,214,.45);}
+  .admin-schedule-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;font-weight:700;}
+  .admin-schedule-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .admin-schedule-grid label{font-size:10.5px;color:#7a746c;margin:0;}
+  .admin-schedule-grid input,.admin-schedule-grid select{width:100%;margin:3px 0 0;}
+  .schedule-days{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:5px;}
+  .schedule-day{position:relative;}
+  .schedule-day input{position:absolute;opacity:0;pointer-events:none;}
+  .schedule-day span{display:inline-flex;align-items:center;justify-content:center;min-width:42px;padding:5px 7px;border:1px solid var(--line);border-radius:999px;background:#fffefc;font-size:10px;cursor:pointer;}
+  .schedule-day input:checked + span{background:var(--rust);border-color:var(--rust);color:#fff;}
+  .schedule-note{grid-column:1 / -1;color:#7a746c;font-size:10px;line-height:1.5;}
+  @media (max-width:560px){.admin-schedule-grid{grid-template-columns:1fr;}}
+
   @media (prefers-reduced-motion: reduce){
     *{transition:none !important;}
   }
@@ -1011,6 +1027,14 @@
       </div>
     </details>
 
+    <div class="admin-settings-block">
+      <details open>
+        <summary>⏱️ الجدولة التلقائية للعروض والأقسام والأصناف</summary>
+        <div class="admin-settings-section">
+          <div class="admin-save-note">فعّل الجدولة على أي قسم أو صنف وحدد الأيام ووقت البداية والنهاية. العنصر هيظهر ويختفي تلقائيًا، ومعه عدّاد للوقت المتبقي.</div>
+        </div>
+      </details>
+    </div>
     <div id="adminCategories"></div>
     <div class="admin-panel-foot">
       <button class="primary-btn" id="saveMenuBtn" type="button" style="flex:0 0 auto;">حفظ التعديلات</button>
@@ -1686,6 +1710,7 @@
   }
 
   function saveMenu(){
+    ensureScheduleDefaults();
     localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(MENU));
     apiSet('menu', MENU);
   }
@@ -1693,6 +1718,7 @@
     const remote = await apiGet('menu');
     if(Array.isArray(remote) && remote.length){
       MENU = remote;
+       ensureScheduleDefaults();
       localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(MENU));
       renderMenu();
       renderTicket();
@@ -1702,6 +1728,7 @@
   }
 
   let MENU = loadMenu();
+  ensureScheduleDefaults();
 
   // ---------- State (in-memory only, no storage) ----------
   const cart = {}; // variantId -> { name, price, qty }
@@ -1718,6 +1745,56 @@
     return /(مقرمش|فرايد|ستريبس|تندر|بروست|مسحب)/.test(searchableText);
   }
 
+  const SCHEDULE_DAY_LABELS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  const DEFAULT_SCHEDULE = {enabled:false, days:[0,1,2,3,4,5,6], start:'00:00', end:'23:59', countdown:true, oneDate:''};
+
+  function normalizeSchedule(schedule){
+    if(!schedule || typeof schedule !== 'object') return {...DEFAULT_SCHEDULE};
+    const days = Array.isArray(schedule.days) ? schedule.days.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6) : DEFAULT_SCHEDULE.days;
+    return {enabled:schedule.enabled===true, days:[...new Set(days)], start:/^\d{2}:\d{2}$/.test(schedule.start||'')?schedule.start:'00:00', end:/^\d{2}:\d{2}$/.test(schedule.end||'')?schedule.end:'23:59', countdown:schedule.countdown!==false, oneDate:schedule.oneDate||''};
+  }
+  function ensureScheduleDefaults(){MENU.forEach(cat=>{cat.schedule=normalizeSchedule(cat.schedule);cat.items=Array.isArray(cat.items)?cat.items:[];cat.items.forEach(item=>item.schedule=normalizeSchedule(item.schedule));});}
+  function timeToMinutes(v){const m=String(v||'').match(/^(\d{2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):0;}
+  function isScheduleActive(schedule,now=new Date()){
+    const s=normalizeSchedule(schedule); if(!s.enabled) return true;
+    if(s.oneDate){const ymd=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');if(ymd!==s.oneDate)return false;}else if(!s.days.includes(now.getDay()))return false;
+    const cur=now.getHours()*60+now.getMinutes(),start=timeToMinutes(s.start),end=timeToMinutes(s.end);
+    if(start===end)return true;if(end>start)return cur>=start&&cur<end;return cur>=start||cur<end;
+  }
+  function getScheduleEndDate(schedule,now=new Date()){
+    const s=normalizeSchedule(schedule);if(!s.enabled)return null;const endMin=timeToMinutes(s.end),startMin=timeToMinutes(s.start),end=new Date(now);
+    end.setSeconds(0,0);end.setHours(Math.floor(endMin/60),endMin%60,0,0);if(end<=now)end.setDate(end.getDate()+1);if(endMin<startMin&&now.getHours()*60+now.getMinutes()<endMin)end.setDate(end.getDate()-1);
+    if(s.oneDate){const [y,m,d]=s.oneDate.split('-').map(Number);end.setFullYear(y,m-1,d);}return end;
+  }
+  function formatRemaining(ms){let sec=Math.max(0,Math.floor(ms/1000));const d=Math.floor(sec/86400);sec%=86400;const h=Math.floor(sec/3600);sec%=3600;const m=Math.floor(sec/60);sec%=60;if(d)return `${d} يوم ${h} س`;if(h)return `${h} س ${String(m).padStart(2,'0')} د`;return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;}
+  function scheduleCountdownHtml(schedule,now=new Date()){const s=normalizeSchedule(schedule);if(!s.enabled||!s.countdown||!isScheduleActive(s,now))return '';const end=getScheduleEndDate(s,now);return end?`<div class="schedule-countdown">⏳ متبقي <strong data-schedule-end="${end.getTime()}">${formatRemaining(end.getTime()-now.getTime())}</strong></div>`:'';}
+  function isCategoryVisible(cat,now=new Date()){return !!cat&&cat.available!==false&&isScheduleActive(cat.schedule,now);}
+  function isItemVisible(item,now=new Date()){return !!item&&item.available!==false&&isScheduleActive(item.schedule,now);}
+  function getScheduleTarget(type,catIdx,itemIdx){const cat=MENU[catIdx];if(!cat)return null;return type==='item'?cat.items[itemIdx]:cat;}
+  function buildScheduleEditor(schedule,type,catIdx,itemIdx=''){
+    const s=normalizeSchedule(schedule);
+    return `<div class="admin-schedule-box"><div class="admin-schedule-title"><span>⏱️ إعداد الجدولة</span><button class="admin-mini-btn danger" type="button" data-action="remove-schedule" data-cat="${catIdx}" data-item="${itemIdx}" data-type="${type}">إلغاء الجدولة</button></div>
+      <div class="admin-schedule-grid">
+        <label>تشغيل الجدولة<select data-role="schedule-enabled" data-type="${type}" data-cat="${catIdx}" data-item="${itemIdx}"><option value="no" ${!s.enabled?'selected':''}>لا — تشغيل يدوي</option><option value="yes" ${s.enabled?'selected':''}>نعم — تلقائي</option></select></label>
+        <label>تاريخ محدد (اختياري)<input type="date" value="${s.oneDate}" data-role="schedule-date" data-type="${type}" data-cat="${catIdx}" data-item="${itemIdx}"></label>
+        <label>من الساعة<input type="time" value="${s.start}" data-role="schedule-start" data-type="${type}" data-cat="${catIdx}" data-item="${itemIdx}"></label>
+        <label>إلى الساعة<input type="time" value="${s.end}" data-role="schedule-end" data-type="${type}" data-cat="${catIdx}" data-item="${itemIdx}"></label>
+        <label>عرض العدّاد<select data-role="schedule-countdown" data-type="${type}" data-cat="${catIdx}" data-item="${itemIdx}"><option value="yes" ${s.countdown?'selected':''}>نعم</option><option value="no" ${!s.countdown?'selected':''}>لا</option></select></label>
+        <div class="schedule-note">لو اخترت تاريخًا محددًا، الجدولة تعمل في اليوم ده. لو التاريخ فاضي، الأيام المختارة هي اللي تتحكم.</div>
+        <div class="schedule-days">${SCHEDULE_DAY_LABELS.map((label,day)=>`<label class="schedule-day"><input type="checkbox" value="${day}" data-role="schedule-day" data-type="${type}" data-cat="${catIdx}" data-item="${itemIdx}" ${s.days.includes(day)?'checked':''}><span>${label}</span></label>`).join('')}</div>
+      </div></div>`;
+  }
+  function saveScheduleState(){ensureScheduleDefaults();localStorage.setItem(MENU_STORAGE_KEY,JSON.stringify(MENU));apiSet('menu',MENU);}
+  function refreshAfterScheduleChange(){renderMenu();renderTicket();if(typeof buildAdminPanel==='function'&&adminPanel&&adminPanel.classList.contains('open'))buildAdminPanel();if(typeof buildStaffPanel==='function'&&staffPanel&&staffPanel.classList.contains('open'))buildStaffPanel();}
+  function tickScheduleCountdowns(){const now=new Date();let rerender=false;document.querySelectorAll('[data-schedule-end]').forEach(el=>{const r=Number(el.dataset.scheduleEnd)-now.getTime();if(r<=0)rerender=true;else el.textContent=formatRemaining(r);});if(rerender)refreshAfterScheduleChange();}
+  function handleScheduleFieldChange(e){
+    const el=e.target,type=el.dataset.type,catIdx=parseInt(el.dataset.cat,10),itemIdx=el.dataset.item===''?null:parseInt(el.dataset.item,10),target=getScheduleTarget(type,catIdx,itemIdx);if(!target)return;
+    const s=normalizeSchedule(target.schedule);
+    if(el.dataset.role==='schedule-enabled')s.enabled=el.value==='yes';if(el.dataset.role==='schedule-date')s.oneDate=el.value||'';if(el.dataset.role==='schedule-start')s.start=el.value||'00:00';if(el.dataset.role==='schedule-end')s.end=el.value||'23:59';if(el.dataset.role==='schedule-countdown')s.countdown=el.value==='yes';
+    if(el.dataset.role==='schedule-day'){const d=Number(el.value);if(el.checked)s.days=[...new Set([...s.days,d])];else{s.days=s.days.filter(x=>x!==d);if(!s.days.length){el.checked=true;s.days=[d];}}}
+    target.schedule=s;saveScheduleState();refreshAfterScheduleChange();
+  }
+
   function renderMenu(){
     const menuEl = document.getElementById('menu');
     const navEl = document.getElementById('categoryNav');
@@ -1726,7 +1803,7 @@
 
     let visibleIndex = -1;
     MENU.forEach((cat, catIndex) => {
-      if(cat.available === false) return; // القسم مقفول مؤقتاً — متبقاش يظهر للزبون
+      if(!isCategoryVisible(cat)) return; // القسم مقفول مؤقتاً — متبقاش يظهر للزبون
       visibleIndex++;
       const renderIndex = visibleIndex;
       const isOffer = cat.category === "عروض الأجازة";
@@ -1744,7 +1821,8 @@
       if(renderIndex !== 0) section.classList.add('hidden');
       section.id = `category-${renderIndex}`;
       section.innerHTML = `
-        <h2>${isOffer ? '🔥 ' : ''}${cat.category} <span class="count">${cat.items.filter(it => it.available !== false).length} صنف</span></h2>
+        <h2>${isOffer ? '🔥 ' : ''}${cat.category} <span class="count">${cat.items.filter(it => isItemVisible(it)).length} صنف</span></h2>
+         ${scheduleCountdownHtml(cat)}
         <hr class="divider">
         <div class="category-items"></div>
       `;
@@ -1752,7 +1830,7 @@
       const itemsEl = section.querySelector('.category-items');
 
       cat.items.forEach(item => {
-        if(item.available === false) return; // موقوف مؤقتاً — لا يظهر للزبون
+        if(!isItemVisible(item)) return; // موقوف مؤقتاً — لا يظهر للزبون
 
         const row = document.createElement('div');
         row.className = 'item';
@@ -2314,10 +2392,16 @@
         <input type="text" value="${escapeAttr(cat.category)}" data-role="cat-name" data-cat="${catIdx}">
         <button class="admin-mini-btn" type="button" data-action="add-item" data-cat="${catIdx}">+ صنف جديد في القسم ده</button>
         <button class="admin-mini-btn" type="button" data-action="toggle-cat-available" data-cat="${catIdx}">${catIsOff ? '🔓 فتح القسم' : '🔒 قفل القسم مؤقتاً'}</button>
+        <button class="admin-mini-btn" type="button" data-action="edit-schedule" data-cat="${catIdx}">⏱️ جدولة</button>
         <button class="admin-mini-btn danger" type="button" data-action="del-cat" data-cat="${catIdx}">حذف القسم</button>
       `;
       if(catIsOff) titleRow.style.opacity = '0.55';
       block.appendChild(titleRow);
+       if(cat.schedule && cat.schedule.enabled){
+         const sw=document.createElement('div');
+         sw.innerHTML=buildScheduleEditor(cat.schedule,'category',catIdx);
+         block.appendChild(sw.firstElementChild);
+       }
 
       cat.items.forEach((item, itemIdx) => {
         const row = document.createElement('div');
@@ -2357,6 +2441,7 @@
               </div>
               <div class="admin-item-row-actions">
                 <button class="admin-mini-btn" type="button" data-action="toggle-available" data-cat="${catIdx}" data-item="${itemIdx}">${isOff ? 'تفعيل الصنف' : 'إيقاف الصنف مؤقتاً'}</button>
+                 <button class="admin-mini-btn" type="button" data-action="edit-item-schedule" data-cat="${catIdx}" data-item="${itemIdx}">⏱️ جدولة</button>
                 <select class="admin-mini-btn" data-role="move-cat" data-cat="${catIdx}" data-item="${itemIdx}" style="cursor:pointer;">
                   <option value="">نقل لقسم آخر...</option>
                   ${categoryOptions}
@@ -2367,6 +2452,11 @@
           </div>
         `;
         block.appendChild(row);
+         if(item.schedule && item.schedule.enabled){
+           const sw=document.createElement('div');
+           sw.innerHTML=buildScheduleEditor(item.schedule,'item',catIdx,itemIdx);
+           row.appendChild(sw.firstElementChild);
+         }
       });
 
       adminCategoriesEl.appendChild(block);
@@ -2383,6 +2473,9 @@
     });
     adminCategoriesEl.querySelectorAll('select[data-role="move-cat"]').forEach(sel => {
       sel.addEventListener('change', handleMoveItem);
+    adminCategoriesEl.querySelectorAll('[data-role^="schedule-"]').forEach(el => {
+      el.addEventListener('change', handleScheduleFieldChange);
+    });
     });
     adminCategoriesEl.querySelectorAll('.admin-image-input').forEach(inp => {
       inp.addEventListener('change', handleImageUpload);
@@ -2468,12 +2561,17 @@
       return;
     }
     if(action === 'add-item'){
-      cat.items.push({ id: newItemId(), name: 'صنف جديد', desc: '', sizes: [{label:'', price:0}], available: true });
+      cat.items.push({ id: newItemId(), name: 'صنف جديد', desc: '', sizes: [{label:'', price:0}], available: true, schedule:{...DEFAULT_SCHEDULE} });
       buildAdminPanel();
       return;
     }
     if(action === 'toggle-cat-available'){
       cat.available = cat.available === false ? true : false;
+      buildAdminPanel();
+      return;
+    }
+    if(action === 'edit-schedule'){
+      cat.schedule={...normalizeSchedule(cat.schedule),enabled:true};
       buildAdminPanel();
       return;
     }
@@ -2490,6 +2588,18 @@
     if(action === 'toggle-available'){
       item.available = item.available === false ? true : false;
       buildAdminPanel();
+      return;
+    }
+    if(action === 'edit-item-schedule'){
+      item.schedule={...normalizeSchedule(item.schedule),enabled:true};
+      buildAdminPanel();
+      return;
+    }
+    if(action === 'remove-schedule'){
+      const type=btn.dataset.type;
+      const idx=btn.dataset.item===''?null:parseInt(btn.dataset.item,10);
+      const target=getScheduleTarget(type,catIdx,idx);
+      if(target){target.schedule={...DEFAULT_SCHEDULE};saveScheduleState();refreshAfterScheduleChange();}
       return;
     }
     if(action === 'del-item'){
@@ -2871,7 +2981,7 @@
   });
 
   addCategoryBtn.addEventListener('click', () => {
-    MENU.push({ category: 'قسم جديد', items: [] });
+    MENU.push({ category: 'قسم جديد', items: [], schedule:{...DEFAULT_SCHEDULE} });
     buildAdminPanel();
   });
 
@@ -2939,6 +3049,7 @@
   syncWhatsAppFromServer();
   syncPaymentFromServer();
   syncDeliveryFromServer();
+  setInterval(tickScheduleCountdowns, 1000);
 </script>
 
 </body>
