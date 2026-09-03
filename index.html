@@ -510,6 +510,15 @@
     letter-spacing:.02em;
     font-family:'Tajawal', sans-serif;
   }
+  .receipt-overlay{position:fixed;inset:0;z-index:800;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(33,29,26,.58);}
+  .receipt-overlay.open{display:flex;}
+  .receipt-box{width:min(100%,410px);max-height:88vh;overflow:auto;padding:24px;border-radius:9px;background:#fffdf8;box-shadow:var(--shadow);text-align:center;}
+  .receipt-box h3{margin:0 0 7px;font-family:'Fraunces','Tajawal',serif;font-size:23px;}
+  .receipt-eta{margin:16px 0;padding:12px;background:rgba(201,154,59,.16);border-radius:5px;font-weight:700;font-size:16px;}
+  .receipt-lines{border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);padding:10px 0;text-align:right;font-size:13px;}
+  .receipt-line{display:flex;justify-content:space-between;gap:10px;padding:5px 0;}
+  .receipt-total{font-weight:700;font-size:16px;margin-top:12px;}
+  .receipt-close{width:100%;margin-top:18px;padding:11px;border:0;border-radius:4px;background:var(--sage);color:#fff;font-family:'Tajawal',sans-serif;font-weight:700;cursor:pointer;}
 
   footer{
     text-align:center;
@@ -1013,6 +1022,12 @@
       </div>
 
       <div class="admin-settings-section">
+        <h4>وقت وصول الطلب للعميل</h4>
+        <input id="deliveryEtaMinutes" type="number" min="1" step="1" inputmode="numeric" placeholder="مثال: 45">
+        <div class="admin-save-note">اكتب عدد الدقائق المتوقع؛ سيظهر للعميل في إيصال تأكيد الطلب.</div>
+      </div>
+
+      <div class="admin-settings-section">
         <h4>المستخدمين — صلاحية فتح/قفل الأقسام والأصناف بس</h4>
         <div id="staffUsersList"></div>
         <div class="admin-add-row">
@@ -1141,6 +1156,14 @@
 </div>
 
 <footer>ماكسز • اطلب أونلاين • الأسعار بالجنيه المصري</footer>
+
+<div class="receipt-overlay" id="receiptOverlay" role="dialog" aria-modal="true" aria-labelledby="receiptTitle">
+  <div class="receipt-box">
+    <h3 id="receiptTitle">تم استلام طلبك ✓</h3>
+    <div id="receiptContent"></div>
+    <button class="receipt-close" id="receiptCloseBtn" type="button">تمام</button>
+  </div>
+</div>
 
 <script>
   // ---------- Config ----------
@@ -1376,6 +1399,27 @@
   }
 
   let DELIVERY_GROUPS = loadDeliveryGroups();
+
+  // الوقت الذي يحدده الأدمن ويظهر للعميل في إيصال تأكيد الطلب.
+  const DELIVERY_ETA_STORAGE_KEY = 'maxez_delivery_eta_minutes_v1';
+  function loadDeliveryEtaMinutes(){
+    const saved = parseInt(localStorage.getItem(DELIVERY_ETA_STORAGE_KEY), 10);
+    return Number.isInteger(saved) && saved > 0 ? saved : 45;
+  }
+  function saveDeliveryEtaMinutes(){
+    localStorage.setItem(DELIVERY_ETA_STORAGE_KEY, String(DELIVERY_ETA_MINUTES));
+    apiSet('delivery-eta-minutes', DELIVERY_ETA_MINUTES);
+  }
+  async function syncDeliveryEtaMinutes(){
+    const remote = parseInt(await apiGet('delivery-eta-minutes'), 10);
+    if(Number.isInteger(remote) && remote > 0){
+      DELIVERY_ETA_MINUTES = remote;
+      localStorage.setItem(DELIVERY_ETA_STORAGE_KEY, String(DELIVERY_ETA_MINUTES));
+      const input = document.getElementById('deliveryEtaMinutes');
+      if(input) input.value = DELIVERY_ETA_MINUTES;
+    }
+  }
+  let DELIVERY_ETA_MINUTES = loadDeliveryEtaMinutes();
 
   let DELIVERY_OPTIONS = [];
   function rebuildDeliveryOptions(){
@@ -2130,6 +2174,25 @@
     return `طلب جديد — ${RESTAURANT_NAME}\n\n${lines}\n\nالإجمالي الفرعي: ${subtotal} ${CURRENCY}\nالتوصيل (${deliveryOpt.label}): ${deliveryOpt.fee} ${CURRENCY}\nالإجمالي الكلي: ${total} ${CURRENCY}\n\n${paymentLine}\n\nالاسم: ${name}\nالتليفون: ${phone}\nالعنوان/ملاحظات: ${addr}`;
   }
 
+  function showCustomerReceipt(){
+    const deliveryOpt = getSelectedDeliveryFee();
+    let subtotal = 0;
+    const lines = Object.values(cart).map(line => {
+      const amount = line.price * line.qty;
+      subtotal += amount;
+      return `<div class="receipt-line"><span>${escapeAttr(line.name)} × ${line.qty}</span><span>${amount} ${CURRENCY}</span></div>`;
+    }).join('');
+    const total = subtotal + deliveryOpt.fee;
+    receiptContent.innerHTML = `
+      <div class="receipt-eta">طلبك هيوصل خلال ${DELIVERY_ETA_MINUTES} دقيقة</div>
+      <div class="receipt-lines">${lines}</div>
+      <div class="receipt-line"><span>التوصيل</span><span>${deliveryOpt.fee} ${CURRENCY}</span></div>
+      <div class="receipt-total">الإجمالي: ${total} ${CURRENCY}</div>
+      <div class="ticket-foot">تم إرسال طلبك للمطعم على واتساب.</div>
+    `;
+    receiptOverlay.classList.add('open');
+  }
+
   document.getElementById('sendBtn').addEventListener('click', () => {
     if(Object.keys(cart).length === 0) return;
 
@@ -2168,6 +2231,7 @@
     const message = buildWhatsAppMessage();
     const url = `https://wa.me/${activeNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
+    showCustomerReceipt();
 
     if(pm.type !== 'cod' && paymentProofDataUrl){
       setTimeout(() => {
@@ -2251,6 +2315,27 @@
   const deliveryAreasAdminEl = document.getElementById('deliveryAreasAdmin');
   const newBranchLabelInput = document.getElementById('newBranchLabelInput');
   const addBranchBtn = document.getElementById('addBranchBtn');
+  const deliveryEtaInput = document.getElementById('deliveryEtaMinutes');
+  const receiptOverlay = document.getElementById('receiptOverlay');
+  const receiptContent = document.getElementById('receiptContent');
+  const receiptCloseBtn = document.getElementById('receiptCloseBtn');
+
+  deliveryEtaInput.value = DELIVERY_ETA_MINUTES;
+  deliveryEtaInput.addEventListener('change', () => {
+    const value = parseInt(deliveryEtaInput.value, 10);
+    if(!Number.isInteger(value) || value < 1){
+      alert('اكتب وقت وصول صحيح بالدقائق.');
+      deliveryEtaInput.value = DELIVERY_ETA_MINUTES;
+      return;
+    }
+    DELIVERY_ETA_MINUTES = value;
+    saveDeliveryEtaMinutes();
+  });
+
+  receiptCloseBtn.addEventListener('click', () => receiptOverlay.classList.remove('open'));
+  receiptOverlay.addEventListener('click', event => {
+    if(event.target === receiptOverlay) receiptOverlay.classList.remove('open');
+  });
 
   const staffPanel = document.getElementById('staffPanel');
   const staffCloseBtn = document.getElementById('staffCloseBtn');
@@ -3007,6 +3092,7 @@
   syncWhatsAppFromServer();
   syncPaymentFromServer();
   syncDeliveryFromServer();
+  syncDeliveryEtaMinutes();
 </script>
 
 </body>
