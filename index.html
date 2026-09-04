@@ -1209,8 +1209,10 @@
       <div class="admin-settings-section">
         <h4>🔔 الطلبات الحية</h4>
         <label style="display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:10px;">
-          <input type="checkbox" id="orderSoundToggle"> تنبيه صوتي لما يوصل طلب جديد (لازم اللوحة تكون مفتوحة)
+          <input type="checkbox" id="orderSoundToggle"> تنبيه صوتي لما يوصل طلب جديد
         </label>
+        <button class="admin-mini-btn" id="enableNotifyBtn" type="button">🔔 فعّل تنبيهات الجهاز</button>
+        <div id="notifyStatusNote" class="admin-save-note"></div>
         <div id="liveOrdersList"></div>
       </div>
 
@@ -1718,11 +1720,19 @@
 
   // ---------- Order tracking (per-device, no login needed) ----------
   const ORDER_TRACK_KEY = 'maxez_last_order_v1';
-  const DEFAULT_PREP_MINUTES = 25;
+  const DEFAULT_ETA_MINUTES = 45;      // الوقت الكلي المتوقع اللي بيظهر للعميل
+  const DEFAULT_ON_WAY_MINUTES = 25;   // بعد كام دقيقة يتحول الإشعار لـ "في الطريق"
   const ORDER_TRACK_VISIBLE_HOURS = 3;
 
-  function saveLastOrder(orderId, total, prepMinutes){
-    const order = { id: orderId, ts: Date.now(), total, prepMinutes: prepMinutes || DEFAULT_PREP_MINUTES };
+  function saveLastOrder(orderId, total, etaMinutes, onWayMinutes){
+    const order = {
+      id: orderId,
+      ts: Date.now(),
+      total,
+      etaMinutes: etaMinutes || DEFAULT_ETA_MINUTES,
+      onWayMinutes: onWayMinutes || DEFAULT_ON_WAY_MINUTES,
+      notifiedOnWay: false,
+    };
     localStorage.setItem(ORDER_TRACK_KEY, JSON.stringify(order));
     return order;
   }
@@ -1736,6 +1746,11 @@
       return order;
     }catch(e){ return null; }
   }
+  function requestNotifyPermissionIfNeeded(){
+    if('Notification' in window && Notification.permission === 'default'){
+      Notification.requestPermission();
+    }
+  }
   function renderOrderTracker(){
     const box = document.getElementById('orderTracker');
     if(!box) return;
@@ -1744,18 +1759,31 @@
       box.style.display = 'none';
       return;
     }
-    const prepMinutes = order.prepMinutes || DEFAULT_PREP_MINUTES;
+    const onWayMinutes = order.onWayMinutes || DEFAULT_ON_WAY_MINUTES;
+    const etaMinutes = order.etaMinutes || DEFAULT_ETA_MINUTES;
     const minutesSince = (Date.now() - order.ts) / 60000;
-    const isPreparing = minutesSince < prepMinutes;
-    const statusIcon = isPreparing ? '👨‍🍳' : '🛵';
-    const statusText = isPreparing ? 'جاري تجهيز طلبك...' : 'طلبك في الطريق مع مندوب التوصيل';
-    const remaining = Math.max(0, Math.ceil(prepMinutes - minutesSince));
+    const isOnWay = minutesSince >= onWayMinutes;
+    const statusIcon = isOnWay ? '🛵' : '👨‍🍳';
+    const statusText = isOnWay ? 'طلبك في الطريق مع مندوب التوصيل' : 'جاري تجهيز طلبك...';
+    const remainingTotal = Math.max(0, Math.ceil(etaMinutes - minutesSince));
+
+    // إشعار للعميل (لو سمح بالإشعارات) لحظة ما الطلب يتحول لـ "في الطريق"
+    if(isOnWay && !order.notifiedOnWay){
+      order.notifiedOnWay = true;
+      localStorage.setItem(ORDER_TRACK_KEY, JSON.stringify(order));
+      if('Notification' in window && Notification.permission === 'granted'){
+        try{
+          new Notification('ماكسز 🛵', { body: `طلبك رقم #${order.id} في الطريق إليك دلوقتي!` });
+        }catch(e){}
+      }
+    }
+
     box.style.display = 'flex';
     box.innerHTML = `
       <div class="order-tracker-icon">${statusIcon}</div>
       <div class="order-tracker-body">
         <div class="order-tracker-title">${statusText}</div>
-        <div class="order-tracker-sub">${isPreparing ? `متبقي تقريبًا ${remaining} دقيقة` : `رقم الطلب: #${order.id}`}</div>
+        <div class="order-tracker-sub">${remainingTotal > 0 ? `الوصول متوقع خلال ${remainingTotal} دقيقة تقريبًا` : `رقم الطلب: #${order.id}`}</div>
       </div>
       <button class="order-tracker-close" id="orderTrackerClose" type="button" aria-label="إخفاء">×</button>
     `;
@@ -1766,6 +1794,7 @@
         box.style.display = 'none';
       });
     }
+    requestNotifyPermissionIfNeeded();
   }
   setInterval(renderOrderTracker, 20000);
 
@@ -1888,7 +1917,7 @@
     }
   }
 
-  // ---------- Live orders + sound alert (admin) ----------
+  // ---------- Live orders + sound/notification alert (admin) ----------
   const ORDER_SOUND_STORAGE_KEY = 'maxez_order_sound_v1';
   let soundAlertEnabled = localStorage.getItem(ORDER_SOUND_STORAGE_KEY) === '1';
   let knownOrderCount = null;
@@ -1897,16 +1926,35 @@
   function playBeep(){
     try{
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = 'sine';
-      o.frequency.value = 880;
-      g.gain.value = 0.15;
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start();
-      setTimeout(() => { o.stop(); ctx.close(); }, 350);
+      // نعمل نغمتين متتاليتين عشان الصوت يبقى واضح ومميز حتى لو الجهاز في وضع صامت جزئي
+      [880, 1046].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = freq;
+        g.gain.value = 0.18;
+        o.connect(g);
+        g.connect(ctx.destination);
+        const startAt = ctx.currentTime + i * 0.22;
+        o.start(startAt);
+        o.stop(startAt + 0.2);
+      });
+      setTimeout(() => ctx.close(), 700);
     }catch(e){}
+  }
+
+  function notifyNewOrder(order){
+    if(soundAlertEnabled) playBeep();
+    if('Notification' in window && Notification.permission === 'granted'){
+      try{
+        const itemsSummary = (order && order.items || []).map(it => `${it.name} x${it.qty}`).join('، ');
+        const n = new Notification('🔔 طلب جديد وصل!', {
+          body: itemsSummary ? `${itemsSummary}\n${order.total} ${CURRENCY}` : 'افتح لوحة التحكم لمتابعة الطلب.',
+          tag: 'maxez-new-order-' + (order ? order.id : Date.now()),
+        });
+        n.onclick = () => { window.focus(); n.close(); };
+      }catch(e){ console.warn('تعذر إظهار إشعار المتصفح:', e); }
+    }
   }
 
   function renderLiveOrdersList(orders){
@@ -1934,20 +1982,31 @@
   async function pollLiveOrders(){
     const remote = await apiGet('orders');
     const orders = Array.isArray(remote) ? remote : [];
-    if(knownOrderCount !== null && orders.length > knownOrderCount && soundAlertEnabled){
-      playBeep();
+    if(knownOrderCount !== null && orders.length > knownOrderCount){
+      // ممكن يوصل أكتر من طلب بين كل استعلام والتاني، فنبّه على كل طلب جديد فعليًا
+      const newOnes = orders.slice(knownOrderCount);
+      newOnes.forEach(notifyNewOrder);
     }
     knownOrderCount = orders.length;
     renderLiveOrdersList(orders);
   }
 
-  function startLiveOrdersPolling(){
+  // بولّينج دايم شغال في الخلفية طول ما الجهاز ده اتسجل عليه دخول أدمن قبل كده،
+  // حتى لو لوحة التحكم مقفولة أو التاب مش فوكس — بشرط إن التاب يفضل مفتوح في المتصفح.
+  function initBackgroundOrdersPolling(){
+    if(localStorage.getItem(ADMIN_DEVICE_KEY) !== '1') return;
     pollLiveOrders();
-    if(liveOrdersInterval) clearInterval(liveOrdersInterval);
-    liveOrdersInterval = setInterval(pollLiveOrders, 15000);
+    if(!liveOrdersInterval){
+      liveOrdersInterval = setInterval(pollLiveOrders, 20000);
+    }
   }
-  function stopLiveOrdersPolling(){
-    if(liveOrdersInterval){ clearInterval(liveOrdersInterval); liveOrdersInterval = null; }
+
+  function startLiveOrdersPolling(){
+    // بمجرد ما اللوحة تتفتح، نعمل تحديث فوري؛ البولّينج الدوري شغال أصلاً في الخلفية
+    pollLiveOrders();
+    if(!liveOrdersInterval){
+      liveOrdersInterval = setInterval(pollLiveOrders, 20000);
+    }
   }
 
   function wireOrderSoundToggle(){
@@ -1958,6 +2017,47 @@
       soundAlertEnabled = toggle.checked;
       localStorage.setItem(ORDER_SOUND_STORAGE_KEY, soundAlertEnabled ? '1' : '0');
       if(soundAlertEnabled) playBeep();
+    };
+  }
+
+  function updateNotifyStatusNote(){
+    const note = document.getElementById('notifyStatusNote');
+    const btn = document.getElementById('enableNotifyBtn');
+    if(!note || !btn) return;
+    if(!('Notification' in window)){
+      note.textContent = 'المتصفح ده مش بيدعم إشعارات النظام، بس التنبيه الصوتي هيفضل شغال طول ما اللوحة مفتوحة.';
+      btn.style.display = 'none';
+      return;
+    }
+    if(Notification.permission === 'granted'){
+      note.textContent = '✅ التنبيهات مفعّلة على الجهاز ده. هتوصلك حتى لو التاب مش فوكس (لازم يفضل مفتوح في المتصفح).';
+      btn.textContent = '🔔 التنبيهات مفعّلة';
+      btn.disabled = true;
+    } else if(Notification.permission === 'denied'){
+      note.textContent = '⚠️ الإشعارات متمنوعة من إعدادات المتصفح. لازم تفعّلها يدوي من إعدادات الموقع في المتصفح.';
+      btn.textContent = '🔔 فعّل تنبيهات الجهاز';
+      btn.disabled = true;
+    } else {
+      note.textContent = 'دوس الزرار عشان الموقع ياخد إذن يبعتلك تنبيه لما طلب جديد يوصل.';
+      btn.textContent = '🔔 فعّل تنبيهات الجهاز';
+      btn.disabled = false;
+    }
+  }
+
+  function wireEnableNotifyBtn(){
+    const btn = document.getElementById('enableNotifyBtn');
+    if(!btn) return;
+    updateNotifyStatusNote();
+    btn.onclick = async () => {
+      if(!('Notification' in window)) return;
+      try{
+        const perm = await Notification.requestPermission();
+        updateNotifyStatusNote();
+        if(perm === 'granted'){
+          new Notification('🔔 تمام!', { body: 'هتوصلك تنبيهات دلوقتي لما طلب جديد يوصل.' });
+          initBackgroundOrdersPolling();
+        }
+      }catch(e){ console.warn('طلب إذن الإشعارات فشل:', e); }
     };
   }
 
@@ -3022,6 +3122,7 @@
 
   let USERS = loadUsers();
   const ADMIN_SESSION_KEY = 'maxez_logged_in_user'; // بيخزن username المستخدم الحالي
+  const ADMIN_DEVICE_KEY = 'maxez_admin_device'; // بيعلّم إن الجهاز ده اتسجل عليه دخول أدمن قبل كده (لتفعيل تنبيهات الخلفية)
 
   function getCurrentUser(){
     const uname = sessionStorage.getItem(ADMIN_SESSION_KEY);
@@ -3100,13 +3201,14 @@
     buildAdminPanel();
     buildAccountSettingsPanel();
     wireOrderSoundToggle();
+    wireEnableNotifyBtn();
     startLiveOrdersPolling();
     adminPanel.classList.add('open');
     resetInactivityTimer();
   }
   function closeAdminPanel(){
     adminPanel.classList.remove('open');
-    stopLiveOrdersPolling();
+    // البولّينج والتنبيهات بيفضلوا شغالين في الخلفية حتى بعد قفل اللوحة، عشان كده مش بنوقفهم هنا
     clearInactivityTimer();
   }
 
@@ -3168,6 +3270,7 @@
     if(match){
       setLockoutState({ attempts: 0, lockedUntil: 0 });
       sessionStorage.setItem(ADMIN_SESSION_KEY, match.username);
+      localStorage.setItem(ADMIN_DEVICE_KEY, '1');
       closeLogin();
       openPanelForUser(match);
     } else {
@@ -3890,6 +3993,7 @@
   syncDeliveryFromServer();
   syncStoreHoursFromServer();
   syncOrderChannelFromServer();
+  initBackgroundOrdersPolling();
   syncReviewsFromServer();
 </script>
 
