@@ -2712,22 +2712,11 @@
     const areaCount = document.getElementById('areaCount');
     const areaOptionsList = document.getElementById('areaOptionsList');
 
-    // احفظ اختيار العميل الحالي (الفرع + المنطقة) الأول، قبل ما نعيد بناء القوائم.
-    // لو التحديث ده جاي من مزامنة تلقائية مع السيرفر، لازم اختيار العميل يفضل زي ما هو.
-    const prevBranchId = branchSelect.value;
-    const prevAreaValue = areaSearch.value;
-    const prevSelectedIndex = areaSearch.dataset.selectedIndex;
-
     branchSelect.innerHTML =
       '<option value="">اختار الفرع أولاً</option>' +
       DELIVERY_GROUPS.map(group =>
         `<option value="${group.id}">${group.label}</option>`
       ).join('');
-
-    // رجّع اختيار الفرع لو لسه موجود في القائمة الجديدة
-    if(prevBranchId && DELIVERY_GROUPS.some(g => g.id === prevBranchId)){
-      branchSelect.value = prevBranchId;
-    }
 
     function optionText(label, fee){
       return `${label} — ${fee} ${CURRENCY}`;
@@ -2781,40 +2770,21 @@
       renderTicket();
     }
 
-    // اعرض حالة المناطق بناءً على الفرع المسترجع (أو الفاضي لو محدش اختار حاجة)
-    renderAreas();
-
-    // رجّع اختيار المنطقة اللي كان العميل مختارها لو لسه صالح بعد التحديث
-    if(prevBranchId && branchSelect.value === prevBranchId && prevAreaValue){
-      const group = currentGroup();
-      const rawIndex = prevSelectedIndex ? parseInt(prevSelectedIndex, 10) : NaN;
-      if(group && Number.isInteger(rawIndex) && group.areas[rawIndex]){
-        areaSearch.value = prevAreaValue;
-        areaSearch.dataset.selectedIndex = prevSelectedIndex;
-      }
-    } else if(!prevBranchId){
-      // الاستلام من الفرع يظل متاحًا كخيار مستقل، بدون إجبار المستخدم على اختيار منطقة.
+    branchSelect.addEventListener('change', () => {
+      areaSearch.value = '';
       areaSearch.dataset.selectedIndex = '';
-    }
+      renderAreas();
+      renderTicket();
+    });
 
-    // اربط الأحداث مرة واحدة بس عشان مزامنة السيرفر اللي بتنادي الدالة دي تاني
-    // ماتضاعفش الـ event listeners على نفس العنصر
-    if(!branchSelect.dataset.wired){
-      branchSelect.addEventListener('change', () => {
-        areaSearch.value = '';
-        areaSearch.dataset.selectedIndex = '';
-        renderAreas();
-        renderTicket();
-      });
+    areaSearch.addEventListener('input', () => {
+      renderAreas();
+      trySelectFromTypedValue();
+    });
+    areaSearch.addEventListener('change', trySelectFromTypedValue);
 
-      areaSearch.addEventListener('input', () => {
-        renderAreas();
-        trySelectFromTypedValue();
-      });
-      areaSearch.addEventListener('change', trySelectFromTypedValue);
-
-      branchSelect.dataset.wired = '1';
-    }
+    // الاستلام من الفرع يظل متاحًا كخيار مستقل، بدون إجبار المستخدم على اختيار منطقة.
+    areaSearch.dataset.selectedIndex = '';
   }
 
   function getSelectedDeliveryFee(){
