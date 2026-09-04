@@ -3,10 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ماكسزز — اطلب أونلاين</title>
+<title>ماكسز — دليفري فرايد تشيكن ووجبات في دسوق وكفر الشيخ | اطلب أونلاين</title>
+<meta name="description" content="اطلب من ماكسز أونلاين — فرايد تشيكن، سندوتشات، وجبات عائلية، وعروض يومية. توصيل سريع لدسوق وكفر الشيخ. اطلب دلوقتي عبر الواتساب.">
+<meta name="keywords" content="ماكسز, دليفري دسوق, دليفري كفر الشيخ, فرايد تشيكن, وجبات, ساندوتشات, طلب أونلاين">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://max-s-site.vercel.app/">
+<meta name="theme-color" content="#8c1f1f">
+<meta property="og:type" content="restaurant.menu">
+<meta property="og:title" content="ماكسز — اطلب أونلاين">
+<meta property="og:description" content="فرايد تشيكن، سندوتشات، وجبات عائلية، وعروض يومية. توصيل سريع لدسوق وكفر الشيخ.">
+<meta property="og:locale" content="ar_EG">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Tajawal:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Restaurant",
+  "name": "ماكسز",
+  "servesCuisine": "فرايد تشيكن وساندوتشات",
+  "priceRange": "$$",
+  "areaServed": ["دسوق", "كفر الشيخ"]
+}
+</script>
 <style>
   :root{
     --ink:#211d1a;
@@ -510,15 +530,6 @@
     letter-spacing:.02em;
     font-family:'Tajawal', sans-serif;
   }
-  .receipt-overlay{position:fixed;inset:0;z-index:800;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(33,29,26,.58);}
-  .receipt-overlay.open{display:flex;}
-  .receipt-box{width:min(100%,410px);max-height:88vh;overflow:auto;padding:24px;border-radius:9px;background:#fffdf8;box-shadow:var(--shadow);text-align:center;}
-  .receipt-box h3{margin:0 0 7px;font-family:'Fraunces','Tajawal',serif;font-size:23px;}
-  .receipt-eta{margin:16px 0;padding:12px;background:rgba(201,154,59,.16);border-radius:5px;font-weight:700;font-size:16px;}
-  .receipt-lines{border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);padding:10px 0;text-align:right;font-size:13px;}
-  .receipt-line{display:flex;justify-content:space-between;gap:10px;padding:5px 0;}
-  .receipt-total{font-weight:700;font-size:16px;margin-top:12px;}
-  .receipt-close{width:100%;margin-top:18px;padding:11px;border:0;border-radius:4px;background:var(--sage);color:#fff;font-family:'Tajawal',sans-serif;font-weight:700;cursor:pointer;}
 
   footer{
     text-align:center;
@@ -778,18 +789,6 @@
   }
   .admin-img-preview img{width:100%; height:100%; object-fit:contain;}
   .admin-item-row-actions{display:flex; gap:6px; margin-top:2px;}
-  .product-schedule{
-    margin-top:10px;
-    padding:9px;
-    border:1px dashed var(--line);
-    border-radius:5px;
-    font-size:12px;
-  }
-  .product-schedule > label{font-weight:700; cursor:pointer;}
-  .schedule-details{display:flex; flex-wrap:wrap; gap:7px; align-items:center; margin-top:8px;}
-  .schedule-details label{display:inline-flex; gap:3px; align-items:center; font-size:11px;}
-  .schedule-details input[type="time"]{width:96px; padding:4px; margin:0;}
-  .schedule-details small{width:100%; color:#7a746c;}
   .admin-panel-foot{
     position:sticky;
     bottom:0;
@@ -845,6 +844,150 @@
     margin-top:8px;
   }
   .admin-add-row input{flex:1; min-width:120px;}
+  .closed-banner{
+    background:linear-gradient(135deg, var(--rust), #6e1616);
+    color:#fff;
+    text-align:center;
+    padding:10px 16px;
+    font-family:'Tajawal', sans-serif;
+    font-weight:700;
+    font-size:14px;
+    position:sticky;
+    top:0;
+    z-index:60;
+  }
+  .order-tracker{
+    position:sticky;
+    top:0;
+    z-index:59;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:linear-gradient(135deg, #2c2318, #1c150f);
+    color:#f7f2e7;
+    padding:12px 16px;
+    box-shadow:0 6px 16px rgba(0,0,0,.25);
+  }
+  .order-tracker-icon{font-size:26px; flex:0 0 auto;}
+  .order-tracker-body{flex:1; min-width:0;}
+  .order-tracker-title{font-family:'Tajawal', sans-serif; font-weight:800; font-size:14.5px;}
+  .order-tracker-sub{font-family:'Tajawal', sans-serif; font-size:12px; opacity:.8; margin-top:2px;}
+  .order-tracker-close{
+    background:rgba(255,255,255,.12);
+    border:none;
+    color:#f7f2e7;
+    width:26px; height:26px;
+    border-radius:50%;
+    font-size:16px;
+    cursor:pointer;
+    flex:0 0 auto;
+  }
+  .reviews-section{
+    max-width:640px;
+    margin:0 auto 40px;
+    padding:20px;
+    background:rgba(255,253,248,.72);
+    border:1px solid var(--line);
+    border-radius:8px;
+  }
+  .reviews-section h2{
+    font-family:'Fraunces', 'Tajawal', serif;
+    font-size:20px;
+    margin:0 0 14px;
+  }
+  .reviews-summary{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:16px;
+    font-family:'Tajawal', sans-serif;
+  }
+  .reviews-summary .stars{color:var(--gold); font-size:18px; letter-spacing:2px;}
+  .reviews-summary .avg{font-weight:800; font-size:16px;}
+  .reviews-summary .count{font-size:12.5px; color:#7a746c;}
+  .review-item{
+    border-top:1px dashed var(--line);
+    padding:12px 0;
+    font-family:'Tajawal', sans-serif;
+  }
+  .review-item:first-of-type{border-top:none;}
+  .review-item .stars{color:var(--gold); font-size:14px; letter-spacing:1px;}
+  .review-item .rname{font-weight:700; font-size:13.5px; margin-inline-start:6px;}
+  .review-item .rtext{font-size:13px; color:#4a443c; margin-top:4px; line-height:1.6;}
+  .review-form{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:16px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+  }
+  .review-form .star-picker{display:flex; gap:4px; font-size:24px; cursor:pointer;}
+  .review-form .star-picker span{color:#d8d0c0; transition:color .1s;}
+  .review-form .star-picker span.active{color:var(--gold);}
+  .review-form input, .review-form textarea{
+    font-family:'Tajawal', sans-serif;
+    padding:9px 11px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:#fffefc;
+    font-size:13.5px;
+  }
+  .review-form button{
+    align-self:flex-start;
+    background:var(--rust);
+    color:#fff;
+    border:none;
+    padding:9px 18px;
+    border-radius:6px;
+    font-family:'Tajawal', sans-serif;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .admin-hours-row{display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
+  .admin-stats-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .admin-stat-box{
+    background:#fffefc;
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:10px;
+    text-align:center;
+  }
+  .admin-stat-box .num{font-size:20px; font-weight:800; color:var(--rust); font-family:'IBM Plex Mono', monospace;}
+  .admin-stat-box .lbl{font-size:11.5px; color:#7a746c; margin-top:2px;}
+  .admin-review-row{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:8px 0;
+    border-top:1px dashed var(--line);
+    font-size:12.5px;
+  }
+  .admin-review-row:first-of-type{border-top:none;}
+  .customer-history-box{
+    background:rgba(201,154,59,.1);
+    border:1px solid rgba(201,154,59,.35);
+    border-radius:6px;
+    padding:10px 12px;
+    font-family:'Tajawal', sans-serif;
+    font-size:12.5px;
+  }
+  .customer-history-title{font-weight:700; margin-bottom:8px;}
+  .customer-history-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:6px 0;
+    border-top:1px dashed rgba(201,154,59,.35);
+  }
+  .customer-history-row:first-of-type{border-top:none;}
+  .customer-history-items{flex:1; color:#4a443c;}
   .delivery-admin-group{
     border:1px solid var(--line);
     border-radius:6px;
@@ -958,6 +1101,23 @@
 
 <button id="adminOpenBtn" type="button">تعديل الموقع</button>
 
+<div id="closedBanner" class="closed-banner" style="display:none;"></div>
+
+<div id="orderTracker" class="order-tracker" style="display:none;"></div>
+
+<div class="admin-overlay" id="orderConfirmOverlay">
+  <div class="admin-box" style="text-align:center;">
+    <div style="font-size:44px; margin-bottom:6px;">✅</div>
+    <h3 style="text-align:center;">تم استلام طلبك!</h3>
+    <div id="orderConfirmId" style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:#7a746c; margin-bottom:14px;"></div>
+    <div id="orderConfirmItems" style="text-align:right; font-size:13.5px; line-height:1.9; border-top:1px dashed var(--line); border-bottom:1px dashed var(--line); padding:10px 0; margin-bottom:12px;"></div>
+    <div id="orderConfirmTotal" style="font-weight:800; font-size:16px; margin-bottom:6px;"></div>
+    <div id="orderConfirmEta" style="font-size:13px; color:#8c1f1f; font-weight:700; margin-bottom:14px;"></div>
+    <div style="font-size:12px; color:#7a746c; margin-bottom:16px;">فتحنالك شات الواتساب في تاب تاني — لو مفتحش، دور عليه وابعت رسالة الطلب من هناك عشان نأكد الأوردر.</div>
+    <button class="admin-mini-btn" id="orderConfirmCloseBtn" type="button" style="width:100%; padding:10px; font-size:14px;">تمام</button>
+  </div>
+</div>
+
 <div class="admin-overlay" id="loginOverlay">
   <div class="admin-box">
     <button class="admin-close" id="loginCloseBtn" type="button" aria-label="إغلاق">×</button>
@@ -1022,9 +1182,47 @@
       </div>
 
       <div class="admin-settings-section">
-        <h4>وقت وصول الطلب للعميل</h4>
-        <input id="deliveryEtaMinutes" type="number" min="1" step="1" inputmode="numeric" placeholder="مثال: 45">
-        <div class="admin-save-note">اكتب عدد الدقائق المتوقع؛ سيظهر للعميل في إيصال تأكيد الطلب.</div>
+        <h4>مواعيد العمل</h4>
+        <div class="admin-hours-row">
+          <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+            <input type="checkbox" id="storeOpenToggle"> المطعم مفتوح دلوقتي
+          </label>
+        </div>
+        <input type="text" id="closedMessageInput" placeholder="رسالة تظهر للعميل وقت القفل (مثال: هنفتح الساعة 12 ظهرًا)" style="width:100%;">
+        <div class="admin-save-note">لما تقفل المطعم من هنا، هتظهر رسالة فوق الموقع وزرار إرسال الطلب هيتوقف تلقائي.</div>
+      </div>
+
+      <div class="admin-settings-section">
+        <h4>📨 قناة استقبال الطلبات</h4>
+        <label for="orderChannelSelect" style="font-size:12px; color:#7a746c; display:block; margin-bottom:4px;">فين توصلك الطلبات؟</label>
+        <select id="orderChannelSelect" style="width:100%; margin-bottom:10px;">
+          <option value="whatsapp">واتساب</option>
+          <option value="telegram">تليجرام</option>
+        </select>
+        <div id="telegramChannelFields" style="display:none;">
+          <input type="text" id="telegramChatIdInput" placeholder="Telegram Chat ID (رقم المحادثة أو القروب)" style="width:100%;">
+          <div class="admin-save-note">لازم تعمل بوت تليجرام وتحط توكنه في إعدادات المشروع على Vercel الأول (TELEGRAM_BOT_TOKEN) عشان الخيار ده يشتغل. اسأل لو محتاج الخطوات.</div>
+        </div>
+        <div class="admin-save-note">لو اخترت واتساب، هيفضل شغال زي ما هو دلوقتي بالظبط.</div>
+      </div>
+
+      <div class="admin-settings-section">
+        <h4>🔔 الطلبات الحية</h4>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:10px;">
+          <input type="checkbox" id="orderSoundToggle"> تنبيه صوتي لما يوصل طلب جديد (لازم اللوحة تكون مفتوحة)
+        </label>
+        <div id="liveOrdersList"></div>
+      </div>
+
+      <div class="admin-settings-section">
+        <h4>الطلبات والإحصائيات</h4>
+        <div class="admin-stats-grid" id="orderStatsGrid"></div>
+        <div id="orderStatsDetails" style="font-size:12.5px; line-height:1.9; color:#4a443c;"></div>
+      </div>
+
+      <div class="admin-settings-section">
+        <h4>تقييمات العملاء</h4>
+        <div id="adminReviewsList"></div>
       </div>
 
       <div class="admin-settings-section">
@@ -1128,6 +1326,7 @@
           <label for="custPhone">التليفون</label>
           <input id="custPhone" type="tel" placeholder="01xxxxxxxxx">
         </div>
+        <div id="customerHistoryBox" class="customer-history-box" style="display:none;"></div>
         <div>
           <label for="custAddr">عنوان التوصيل / ملاحظات</label>
           <textarea id="custAddr" rows="2" placeholder="الشارع، المبنى، الدور، أو 'استلام من الفرع'"></textarea>
@@ -1155,15 +1354,21 @@
   </div>
 </div>
 
-<footer>ماكسز • اطلب أونلاين • الأسعار بالجنيه المصري</footer>
+<section class="reviews-section" id="reviewsSection">
+  <h2>آراء العملاء</h2>
+  <div class="reviews-summary" id="reviewsSummary"></div>
+  <div id="reviewsList"></div>
+  <form class="review-form" id="reviewForm">
+    <div class="star-picker" id="reviewStarPicker">
+      <span data-star="1">★</span><span data-star="2">★</span><span data-star="3">★</span><span data-star="4">★</span><span data-star="5">★</span>
+    </div>
+    <input type="text" id="reviewName" placeholder="اسمك" maxlength="40" required>
+    <textarea id="reviewText" placeholder="رأيك في الأكل والخدمة..." rows="2" maxlength="300"></textarea>
+    <button type="submit">إرسال التقييم</button>
+  </form>
+</section>
 
-<div class="receipt-overlay" id="receiptOverlay" role="dialog" aria-modal="true" aria-labelledby="receiptTitle">
-  <div class="receipt-box">
-    <h3 id="receiptTitle">تم استلام طلبك ✓</h3>
-    <div id="receiptContent"></div>
-    <button class="receipt-close" id="receiptCloseBtn" type="button">تمام</button>
-  </div>
-</div>
+<footer>ماكسز • اطلب أونلاين • الأسعار بالجنيه المصري</footer>
 
 <script>
   // ---------- Config ----------
@@ -1262,6 +1467,545 @@
   let PAYMENT_METHODS = loadPaymentMethods();
   let paymentProofDataUrl = '';
   let paymentProofFileName = '';
+
+  // ---------- Store open/closed hours ----------
+  const HOURS_STORAGE_KEY = 'maxez_hours_v1';
+  const DEFAULT_STORE_HOURS = { isOpen: true, closedMessage: 'المطعم مغلق دلوقتي، هنفتح قريب. تقدر تشوف المنيو وتفضل مستني.' };
+  function loadStoreHours(){
+    try{
+      const saved = localStorage.getItem(HOURS_STORAGE_KEY);
+      if(saved){
+        const parsed = JSON.parse(saved);
+        if(parsed && typeof parsed === 'object') return parsed;
+      }
+    }catch(e){}
+    return JSON.parse(JSON.stringify(DEFAULT_STORE_HOURS));
+  }
+  function saveStoreHours(){
+    localStorage.setItem(HOURS_STORAGE_KEY, JSON.stringify(STORE_HOURS));
+    apiSet('hours', STORE_HOURS);
+  }
+  async function syncStoreHoursFromServer(){
+    const remote = await apiGet('hours');
+    if(remote && typeof remote === 'object'){
+      STORE_HOURS = remote;
+      localStorage.setItem(HOURS_STORAGE_KEY, JSON.stringify(STORE_HOURS));
+      renderClosedBanner();
+    }
+  }
+  let STORE_HOURS = loadStoreHours();
+
+  function renderClosedBanner(){
+    const banner = document.getElementById('closedBanner');
+    const sendBtn = document.getElementById('sendBtn');
+    if(!banner) return;
+    if(STORE_HOURS.isOpen === false){
+      banner.style.display = 'block';
+      banner.textContent = `🔒 ${STORE_HOURS.closedMessage || DEFAULT_STORE_HOURS.closedMessage}`;
+      if(sendBtn) sendBtn.dataset.storeClosed = '1';
+    } else {
+      banner.style.display = 'none';
+      if(sendBtn) sendBtn.dataset.storeClosed = '';
+    }
+    if(sendBtn && Object.keys(cart).length > 0) sendBtn.disabled = STORE_HOURS.isOpen === false;
+  }
+
+  function buildStoreHoursAdmin(){
+    const toggle = document.getElementById('storeOpenToggle');
+    const msgInput = document.getElementById('closedMessageInput');
+    if(!toggle || !msgInput) return;
+
+    toggle.checked = STORE_HOURS.isOpen !== false;
+    msgInput.value = STORE_HOURS.closedMessage || DEFAULT_STORE_HOURS.closedMessage;
+
+    toggle.onchange = () => {
+      STORE_HOURS.isOpen = toggle.checked;
+      saveStoreHours();
+      renderClosedBanner();
+      renderTicket();
+    };
+    msgInput.onchange = () => {
+      STORE_HOURS.closedMessage = msgInput.value.trim() || DEFAULT_STORE_HOURS.closedMessage;
+      saveStoreHours();
+      renderClosedBanner();
+    };
+  }
+
+  // ---------- Order channel (WhatsApp / Telegram) ----------
+  const CHANNEL_STORAGE_KEY = 'maxez_channel_v1';
+  const DEFAULT_ORDER_CHANNEL = { type: 'whatsapp', telegramChatId: '' };
+  function loadOrderChannel(){
+    try{
+      const saved = localStorage.getItem(CHANNEL_STORAGE_KEY);
+      if(saved){
+        const parsed = JSON.parse(saved);
+        if(parsed && typeof parsed === 'object') return parsed;
+      }
+    }catch(e){}
+    return JSON.parse(JSON.stringify(DEFAULT_ORDER_CHANNEL));
+  }
+  function saveOrderChannel(){
+    localStorage.setItem(CHANNEL_STORAGE_KEY, JSON.stringify(ORDER_CHANNEL));
+    apiSet('channel', ORDER_CHANNEL);
+  }
+  async function syncOrderChannelFromServer(){
+    const remote = await apiGet('channel');
+    if(remote && typeof remote === 'object'){
+      ORDER_CHANNEL = remote;
+      localStorage.setItem(CHANNEL_STORAGE_KEY, JSON.stringify(ORDER_CHANNEL));
+    }
+  }
+  let ORDER_CHANNEL = loadOrderChannel();
+
+  function buildOrderChannelAdmin(){
+    const select = document.getElementById('orderChannelSelect');
+    const tgFields = document.getElementById('telegramChannelFields');
+    const tgInput = document.getElementById('telegramChatIdInput');
+    if(!select || !tgFields || !tgInput) return;
+
+    select.value = ORDER_CHANNEL.type || 'whatsapp';
+    tgInput.value = ORDER_CHANNEL.telegramChatId || '';
+    tgFields.style.display = select.value === 'telegram' ? 'block' : 'none';
+
+    select.onchange = () => {
+      ORDER_CHANNEL.type = select.value;
+      tgFields.style.display = select.value === 'telegram' ? 'block' : 'none';
+      saveOrderChannel();
+    };
+    tgInput.onchange = () => {
+      ORDER_CHANNEL.telegramChatId = tgInput.value.trim();
+      saveOrderChannel();
+    };
+  }
+
+  // ---------- Reviews ----------
+  const REVIEWS_STORAGE_KEY = 'maxez_reviews_v1';
+  function loadReviews(){
+    try{
+      const saved = localStorage.getItem(REVIEWS_STORAGE_KEY);
+      if(saved){
+        const parsed = JSON.parse(saved);
+        if(Array.isArray(parsed)) return parsed;
+      }
+    }catch(e){}
+    return [];
+  }
+  let REVIEWS = loadReviews();
+
+  function renderReviews(){
+    const summaryEl = document.getElementById('reviewsSummary');
+    const listEl = document.getElementById('reviewsList');
+    if(!summaryEl || !listEl) return;
+
+    if(!REVIEWS.length){
+      summaryEl.innerHTML = `<span style="font-size:13px; color:#7a746c;">لسه مفيش تقييمات — كن أول واحد يقيّم!</span>`;
+      listEl.innerHTML = '';
+      return;
+    }
+
+    const avg = REVIEWS.reduce((s, r) => s + (r.stars || 0), 0) / REVIEWS.length;
+    const rounded = Math.round(avg * 10) / 10;
+    const fullStars = Math.round(avg);
+    summaryEl.innerHTML = `
+      <span class="stars">${'★'.repeat(fullStars)}${'☆'.repeat(5 - fullStars)}</span>
+      <span class="avg">${rounded}</span>
+      <span class="count">(${REVIEWS.length} تقييم)</span>
+    `;
+
+    listEl.innerHTML = REVIEWS.slice().reverse().slice(0, 20).map(r => `
+      <div class="review-item">
+        <span class="stars">${'★'.repeat(r.stars || 0)}${'☆'.repeat(5 - (r.stars || 0))}</span>
+        <span class="rname">${escapeAttr(r.name || 'عميل')}</span>
+        ${r.text ? `<div class="rtext">${escapeAttr(r.text)}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  async function syncReviewsFromServer(){
+    const remote = await apiGet('reviews');
+    if(Array.isArray(remote)){
+      REVIEWS = remote;
+      localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(REVIEWS));
+      renderReviews();
+      if(typeof renderAdminReviewsList === 'function' && adminPanel && adminPanel.classList.contains('open')) renderAdminReviewsList();
+    }
+  }
+
+  async function submitReview(name, stars, text){
+    // نجيب آخر نسخة من السيرفر قبل الإضافة عشان منفقدش تقييمات عملاء تانيين
+    const remote = await apiGet('reviews');
+    const current = Array.isArray(remote) ? remote : REVIEWS;
+    const entry = { id: 'rv_' + Math.random().toString(36).slice(2, 9), name, stars, text, ts: Date.now() };
+    current.push(entry);
+    REVIEWS = current;
+    localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(REVIEWS));
+    await apiSet('reviews', REVIEWS);
+    renderReviews();
+  }
+
+  function renderAdminReviewsList(){
+    const el = document.getElementById('adminReviewsList');
+    if(!el) return;
+    if(!REVIEWS.length){
+      el.innerHTML = '<div style="font-size:12.5px; color:#7a746c;">لسه مفيش تقييمات.</div>';
+      return;
+    }
+    el.innerHTML = REVIEWS.slice().reverse().map(r => `
+      <div class="admin-review-row">
+        <div style="flex:1;">
+          <div><strong>${escapeAttr(r.name || 'عميل')}</strong> — ${'★'.repeat(r.stars || 0)}${'☆'.repeat(5 - (r.stars || 0))}</div>
+          ${r.text ? `<div style="color:#7a746c; margin-top:2px;">${escapeAttr(r.text)}</div>` : ''}
+        </div>
+        <button class="admin-mini-btn danger" type="button" data-review-id="${r.id}">حذف</button>
+      </div>
+    `).join('');
+    el.querySelectorAll('button[data-review-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        REVIEWS = REVIEWS.filter(r => r.id !== btn.dataset.reviewId);
+        localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(REVIEWS));
+        await apiSet('reviews', REVIEWS);
+        renderReviews();
+        renderAdminReviewsList();
+      });
+    });
+  }
+
+  // ربط نموذج إضافة تقييم من العميل
+  (function wireReviewForm(){
+    const form = document.getElementById('reviewForm');
+    const picker = document.getElementById('reviewStarPicker');
+    if(!form || !picker) return;
+
+    let selectedStars = 0;
+    const starEls = Array.from(picker.querySelectorAll('span'));
+
+    function paintStars(n){
+      starEls.forEach(s => s.classList.toggle('active', parseInt(s.dataset.star, 10) <= n));
+    }
+
+    starEls.forEach(s => {
+      s.addEventListener('click', () => {
+        selectedStars = parseInt(s.dataset.star, 10);
+        paintStars(selectedStars);
+      });
+    });
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const nameInput = document.getElementById('reviewName');
+      const textInput = document.getElementById('reviewText');
+      const name = nameInput.value.trim();
+      const text = textInput.value.trim();
+
+      if(!name){ alert('اكتب اسمك الأول.'); nameInput.focus(); return; }
+      if(!selectedStars){ alert('اختار تقييمك بالنجوم الأول.'); return; }
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'بيترسل...';
+
+      await submitReview(name, selectedStars, text);
+
+      nameInput.value = '';
+      textInput.value = '';
+      selectedStars = 0;
+      paintStars(0);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'إرسال التقييم';
+      alert('شكراً على تقييمك! 🌟');
+    });
+  })();
+
+  // ---------- Order tracking (per-device, no login needed) ----------
+  const ORDER_TRACK_KEY = 'maxez_last_order_v1';
+  const DEFAULT_PREP_MINUTES = 25;
+  const ORDER_TRACK_VISIBLE_HOURS = 3;
+
+  function saveLastOrder(orderId, total, prepMinutes){
+    const order = { id: orderId, ts: Date.now(), total, prepMinutes: prepMinutes || DEFAULT_PREP_MINUTES };
+    localStorage.setItem(ORDER_TRACK_KEY, JSON.stringify(order));
+    return order;
+  }
+  function getLastOrder(){
+    try{
+      const raw = localStorage.getItem(ORDER_TRACK_KEY);
+      if(!raw) return null;
+      const order = JSON.parse(raw);
+      const hoursSince = (Date.now() - order.ts) / 3600000;
+      if(hoursSince > ORDER_TRACK_VISIBLE_HOURS) return null;
+      return order;
+    }catch(e){ return null; }
+  }
+  function renderOrderTracker(){
+    const box = document.getElementById('orderTracker');
+    if(!box) return;
+    const order = getLastOrder();
+    if(!order){
+      box.style.display = 'none';
+      return;
+    }
+    const prepMinutes = order.prepMinutes || DEFAULT_PREP_MINUTES;
+    const minutesSince = (Date.now() - order.ts) / 60000;
+    const isPreparing = minutesSince < prepMinutes;
+    const statusIcon = isPreparing ? '👨‍🍳' : '🛵';
+    const statusText = isPreparing ? 'جاري تجهيز طلبك...' : 'طلبك في الطريق مع مندوب التوصيل';
+    const remaining = Math.max(0, Math.ceil(prepMinutes - minutesSince));
+    box.style.display = 'flex';
+    box.innerHTML = `
+      <div class="order-tracker-icon">${statusIcon}</div>
+      <div class="order-tracker-body">
+        <div class="order-tracker-title">${statusText}</div>
+        <div class="order-tracker-sub">${isPreparing ? `متبقي تقريبًا ${remaining} دقيقة` : `رقم الطلب: #${order.id}`}</div>
+      </div>
+      <button class="order-tracker-close" id="orderTrackerClose" type="button" aria-label="إخفاء">×</button>
+    `;
+    const closeBtn = document.getElementById('orderTrackerClose');
+    if(closeBtn){
+      closeBtn.addEventListener('click', () => {
+        localStorage.removeItem(ORDER_TRACK_KEY);
+        box.style.display = 'none';
+      });
+    }
+  }
+  setInterval(renderOrderTracker, 20000);
+
+  // ---------- Orders log (for admin stats) ----------
+  async function logOrderForStats(orderId, itemLines, areaLabel, total, customerName, customerPhone){
+    try{
+      const remote = await apiGet('orders');
+      const current = Array.isArray(remote) ? remote : [];
+      current.push({ id: orderId, ts: Date.now(), items: itemLines, area: areaLabel, total, customerName, customerPhone });
+      // نحتفظ بآخر 300 طلب بس عشان الملف ميكبرش على الفاضي
+      const trimmed = current.slice(-300);
+      await apiSet('orders', trimmed);
+    }catch(e){ console.warn('logOrderForStats فشل:', e); }
+  }
+
+  // ---------- Customer profiles (name/phone/address + last 10 orders) ----------
+  async function saveCustomerProfile(phone, name, addr, orderRecord){
+    try{
+      const cleanPhone = (phone || '').replace(/\s+/g, '');
+      if(!cleanPhone) return;
+      const remote = await apiGet('customers');
+      const customers = (remote && typeof remote === 'object' && !Array.isArray(remote)) ? remote : {};
+      const existing = customers[cleanPhone] || { name, phone: cleanPhone, addresses: [], orders: [] };
+      existing.name = name || existing.name;
+      if(addr && !existing.addresses.includes(addr)){
+        existing.addresses = [addr, ...existing.addresses].slice(0, 5);
+      }
+      existing.orders = [orderRecord, ...(existing.orders || [])].slice(0, 10);
+      customers[cleanPhone] = existing;
+      await apiSet('customers', customers);
+    }catch(e){ console.warn('saveCustomerProfile فشل:', e); }
+  }
+
+  let customerLookupTimer = null;
+  function wireCustomerLookup(){
+    const phoneInput = document.getElementById('custPhone');
+    if(!phoneInput) return;
+    phoneInput.addEventListener('input', () => {
+      clearTimeout(customerLookupTimer);
+      customerLookupTimer = setTimeout(() => lookupCustomerByPhone(phoneInput.value.trim()), 600);
+    });
+  }
+
+  async function lookupCustomerByPhone(phone){
+    const box = document.getElementById('customerHistoryBox');
+    const cleanPhone = (phone || '').replace(/\s+/g, '');
+    if(!box) return;
+    if(!cleanPhone || cleanPhone.length < 8){ box.style.display = 'none'; return; }
+
+    const remote = await apiGet('customers');
+    const customers = (remote && typeof remote === 'object' && !Array.isArray(remote)) ? remote : {};
+    const profile = customers[cleanPhone];
+    if(!profile){ box.style.display = 'none'; return; }
+
+    const nameInput = document.getElementById('custName');
+    const addrInput = document.getElementById('custAddr');
+    if(nameInput && !nameInput.value.trim() && profile.name) nameInput.value = profile.name;
+    if(addrInput && !addrInput.value.trim() && profile.addresses && profile.addresses[0]) addrInput.value = profile.addresses[0];
+
+    renderCustomerHistory(profile);
+  }
+
+  function renderCustomerHistory(profile){
+    const box = document.getElementById('customerHistoryBox');
+    if(!box) return;
+    if(!profile.orders || !profile.orders.length){ box.style.display = 'none'; return; }
+
+    box.style.display = 'block';
+    box.innerHTML = `
+      <div class="customer-history-title">👋 أهلاً بيك تاني${profile.name ? ' يا ' + escapeAttr(profile.name) : ''}! آخر طلباتك:</div>
+      ${profile.orders.slice(0, 10).map((o, i) => `
+        <div class="customer-history-row">
+          <div class="customer-history-items">${(o.items || []).map(it => `${escapeAttr(it.name)} x${it.qty}`).join('، ')}</div>
+          <button class="admin-mini-btn" type="button" data-repeat-order="${i}">اطلب نفس الطلب تاني</button>
+        </div>
+      `).join('')}
+    `;
+
+    box.querySelectorAll('button[data-repeat-order]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.repeatOrder, 10);
+        const order = profile.orders[idx];
+        if(order) repeatOrder(order);
+      });
+    });
+  }
+
+  function findVariantByDisplayName(displayName){
+    const match = displayName.match(/^(.*?)\s*\((حار|عادي)\)$/);
+    let baseName = displayName;
+    let heat = null;
+    if(match){
+      baseName = match[1].trim();
+      heat = match[2] === 'حار' ? 'hot' : 'regular';
+    }
+    const foundId = Object.keys(variantIndex).find(vid => variantIndex[vid].name === baseName);
+    return foundId ? { id: foundId, heat } : null;
+  }
+
+  function repeatOrder(order){
+    let addedCount = 0;
+    let missed = 0;
+    (order.items || []).forEach(it => {
+      const found = findVariantByDisplayName(it.name);
+      if(found){
+        for(let i = 0; i < (it.qty || 1); i++) addToCart(found.id, found.heat);
+        addedCount++;
+      } else {
+        missed++;
+      }
+    });
+    if(addedCount > 0){
+      alert(missed > 0
+        ? 'ضفنالك الأصناف المتاحة من طلبك القديم، وبعضها للأسف مبقاش متاح دلوقتي.'
+        : 'تمام! ضفنالك نفس طلبك القديم في السلة.');
+      const linesEl = document.getElementById('ticketLines');
+      if(linesEl) linesEl.scrollIntoView({behavior: 'smooth', block: 'start'});
+    } else {
+      alert('للأسف الأصناف دي مبقتش متاحة دلوقتي.');
+    }
+  }
+
+  // ---------- Live orders + sound alert (admin) ----------
+  const ORDER_SOUND_STORAGE_KEY = 'maxez_order_sound_v1';
+  let soundAlertEnabled = localStorage.getItem(ORDER_SOUND_STORAGE_KEY) === '1';
+  let knownOrderCount = null;
+  let liveOrdersInterval = null;
+
+  function playBeep(){
+    try{
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = 880;
+      g.gain.value = 0.15;
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      setTimeout(() => { o.stop(); ctx.close(); }, 350);
+    }catch(e){}
+  }
+
+  function renderLiveOrdersList(orders){
+    const el = document.getElementById('liveOrdersList');
+    if(!el) return;
+    const recent = orders.slice(-10).reverse();
+    if(!recent.length){
+      el.innerHTML = '<div style="font-size:12.5px; color:#7a746c;">لسه مفيش طلبات.</div>';
+      return;
+    }
+    el.innerHTML = recent.map(o => {
+      const minsAgo = Math.max(0, Math.round((Date.now() - o.ts) / 60000));
+      return `
+        <div class="admin-review-row">
+          <div style="flex:1;">
+            <div><strong>${o.customerName ? escapeAttr(o.customerName) : 'عميل'}</strong>${o.customerPhone ? ` — ${escapeAttr(o.customerPhone)}` : ''} <span style="color:#7a746c;">(من ${minsAgo} دقيقة)</span></div>
+            <div style="color:#7a746c; margin-top:2px;">${(o.items || []).map(it => `${escapeAttr(it.name)} x${it.qty}`).join('، ')}${o.area ? ` — ${escapeAttr(o.area)}` : ''}</div>
+          </div>
+          <div style="font-weight:800; font-family:'IBM Plex Mono', monospace;">${o.total} ${CURRENCY}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function pollLiveOrders(){
+    const remote = await apiGet('orders');
+    const orders = Array.isArray(remote) ? remote : [];
+    if(knownOrderCount !== null && orders.length > knownOrderCount && soundAlertEnabled){
+      playBeep();
+    }
+    knownOrderCount = orders.length;
+    renderLiveOrdersList(orders);
+  }
+
+  function startLiveOrdersPolling(){
+    pollLiveOrders();
+    if(liveOrdersInterval) clearInterval(liveOrdersInterval);
+    liveOrdersInterval = setInterval(pollLiveOrders, 15000);
+  }
+  function stopLiveOrdersPolling(){
+    if(liveOrdersInterval){ clearInterval(liveOrdersInterval); liveOrdersInterval = null; }
+  }
+
+  function wireOrderSoundToggle(){
+    const toggle = document.getElementById('orderSoundToggle');
+    if(!toggle) return;
+    toggle.checked = soundAlertEnabled;
+    toggle.onchange = () => {
+      soundAlertEnabled = toggle.checked;
+      localStorage.setItem(ORDER_SOUND_STORAGE_KEY, soundAlertEnabled ? '1' : '0');
+      if(soundAlertEnabled) playBeep();
+    };
+  }
+
+  async function renderOrderStats(){
+    const gridEl = document.getElementById('orderStatsGrid');
+    const detailsEl = document.getElementById('orderStatsDetails');
+    if(!gridEl || !detailsEl) return;
+    gridEl.innerHTML = `<div class="admin-stat-box"><div class="num">…</div><div class="lbl">جاري التحميل</div></div>`;
+    detailsEl.innerHTML = '';
+
+    const remote = await apiGet('orders');
+    const orders = Array.isArray(remote) ? remote : [];
+
+    if(!orders.length){
+      gridEl.innerHTML = `<div class="admin-stat-box"><div class="num">0</div><div class="lbl">طلبات مسجلة</div></div>`;
+      detailsEl.innerHTML = '<div>لسه مفيش طلبات مسجلة من الموقع.</div>';
+      return;
+    }
+
+    const now = Date.now();
+    const last7days = orders.filter(o => (now - o.ts) < 7 * 24 * 3600000);
+    const totalRevenue = orders.reduce((s, o) => s + (o.total || 0), 0);
+
+    const itemCounts = {};
+    const areaCounts = {};
+    orders.forEach(o => {
+      (o.items || []).forEach(it => {
+        itemCounts[it.name] = (itemCounts[it.name] || 0) + (it.qty || 1);
+      });
+      if(o.area){
+        areaCounts[o.area] = (areaCounts[o.area] || 0) + 1;
+      }
+    });
+
+    const topItems = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const topAreas = Object.entries(areaCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    gridEl.innerHTML = `
+      <div class="admin-stat-box"><div class="num">${orders.length}</div><div class="lbl">إجمالي الطلبات</div></div>
+      <div class="admin-stat-box"><div class="num">${last7days.length}</div><div class="lbl">آخر 7 أيام</div></div>
+      <div class="admin-stat-box"><div class="num">${totalRevenue}</div><div class="lbl">إجمالي المبيعات (${CURRENCY})</div></div>
+    `;
+
+    detailsEl.innerHTML = `
+      <div><strong>أكتر الأصناف طلبًا:</strong> ${topItems.length ? topItems.map(([name, c]) => `${name} (${c})`).join('، ') : '—'}</div>
+      <div style="margin-top:6px;"><strong>أكتر المناطق طلبًا:</strong> ${topAreas.length ? topAreas.map(([name, c]) => `${name} (${c})`).join('، ') : '—'}</div>
+    `;
+  }
 
   // ---------- Delivery fees (edit freely) ----------
   // Delivery areas transcribed from the supplied Desouk and Kafr El-Sheikh lists.
@@ -1399,27 +2143,6 @@
   }
 
   let DELIVERY_GROUPS = loadDeliveryGroups();
-
-  // الوقت الذي يحدده الأدمن ويظهر للعميل في إيصال تأكيد الطلب.
-  const DELIVERY_ETA_STORAGE_KEY = 'maxez_delivery_eta_minutes_v1';
-  function loadDeliveryEtaMinutes(){
-    const saved = parseInt(localStorage.getItem(DELIVERY_ETA_STORAGE_KEY), 10);
-    return Number.isInteger(saved) && saved > 0 ? saved : 45;
-  }
-  function saveDeliveryEtaMinutes(){
-    localStorage.setItem(DELIVERY_ETA_STORAGE_KEY, String(DELIVERY_ETA_MINUTES));
-    apiSet('delivery-eta-minutes', DELIVERY_ETA_MINUTES);
-  }
-  async function syncDeliveryEtaMinutes(){
-    const remote = parseInt(await apiGet('delivery-eta-minutes'), 10);
-    if(Number.isInteger(remote) && remote > 0){
-      DELIVERY_ETA_MINUTES = remote;
-      localStorage.setItem(DELIVERY_ETA_STORAGE_KEY, String(DELIVERY_ETA_MINUTES));
-      const input = document.getElementById('deliveryEtaMinutes');
-      if(input) input.value = DELIVERY_ETA_MINUTES;
-    }
-  }
-  let DELIVERY_ETA_MINUTES = loadDeliveryEtaMinutes();
 
   let DELIVERY_OPTIONS = [];
   function rebuildDeliveryOptions(){
@@ -1763,31 +2486,6 @@
   const cart = {}; // variantId -> { name, price, qty }
   const variantIndex = {}; // variantId -> { name, price }
 
-  // 0 = الأحد، 6 = السبت. المنتج بدون جدولة يظل متاحاً دائماً.
-  function isScheduledProductAvailable(item, now = new Date()){
-    const schedule = item.schedule;
-    if(!schedule || schedule.enabled !== true) return true;
-
-    const days = Array.isArray(schedule.days) ? schedule.days : [];
-    if(!days.includes(now.getDay())) return false;
-
-    const toMinutes = value => {
-      const [hours, minutes] = String(value || '').split(':').map(Number);
-      return Number.isFinite(hours) && Number.isFinite(minutes)
-        ? hours * 60 + minutes
-        : null;
-    };
-    const start = toMinutes(schedule.start);
-    const end = toMinutes(schedule.end);
-    if(start === null || end === null || start === end) return true;
-
-    const current = now.getHours() * 60 + now.getMinutes();
-    // لو النهاية أصغر من البداية فالجدولة تكمل بعد منتصف الليل.
-    return start < end
-      ? current >= start && current < end
-      : current >= start || current < end;
-  }
-
   function variantId(itemId, sizeLabel){
     return sizeLabel ? `${itemId}__${sizeLabel}` : itemId;
   }
@@ -1808,10 +2506,6 @@
     let visibleIndex = -1;
     MENU.forEach((cat, catIndex) => {
       if(cat.available === false) return; // القسم مقفول مؤقتاً — متبقاش يظهر للزبون
-      const visibleItems = cat.items.filter(item =>
-        item.available !== false && isScheduledProductAvailable(item)
-      );
-      if(!visibleItems.length) return; // لا نعرض قسماً فارغاً خارج مواعيد منتجاته
       visibleIndex++;
       const renderIndex = visibleIndex;
       const isOffer = cat.category === "عروض الأجازة";
@@ -1829,14 +2523,15 @@
       if(renderIndex !== 0) section.classList.add('hidden');
       section.id = `category-${renderIndex}`;
       section.innerHTML = `
-        <h2>${isOffer ? '🔥 ' : ''}${cat.category} <span class="count">${visibleItems.length} صنف</span></h2>
+        <h2>${isOffer ? '🔥 ' : ''}${cat.category} <span class="count">${cat.items.filter(it => it.available !== false).length} صنف</span></h2>
         <hr class="divider">
         <div class="category-items"></div>
       `;
 
       const itemsEl = section.querySelector('.category-items');
 
-      visibleItems.forEach(item => {
+      cat.items.forEach(item => {
+        if(item.available === false) return; // موقوف مؤقتاً — لا يظهر للزبون
 
         const row = document.createElement('div');
         row.className = 'item';
@@ -2004,10 +2699,10 @@
     // لو المستخدم لم يختر منطقة صالحة، لا نحسب رسوم توصيل.
     if(group && Number.isInteger(index) && group.areas[index]){
       const [label, fee] = group.areas[index];
-      return { id: `${group.id}-${index}`, label, fee, group: group.label };
+      return { id: `${group.id}-${index}`, label, fee, group: group.label, groupId: group.id, prepMinutes: group.prepMinutes || DEFAULT_PREP_MINUTES };
     }
 
-    return DELIVERY_OPTIONS[0];
+    return { ...DELIVERY_OPTIONS[0], prepMinutes: (group && group.prepMinutes) || DEFAULT_PREP_MINUTES };
   }
 
   // ---------- Payment method selection ----------
@@ -2139,7 +2834,7 @@
     document.getElementById('total').textContent = `${total} ${CURRENCY}`;
     totalsEl.style.display = 'block';
     deliverySelectEl.style.display = 'block';
-    sendBtn.disabled = false;
+    sendBtn.disabled = STORE_HOURS.isOpen === false;
   }
 
   function buildWhatsAppMessage(){
@@ -2174,33 +2869,36 @@
     return `طلب جديد — ${RESTAURANT_NAME}\n\n${lines}\n\nالإجمالي الفرعي: ${subtotal} ${CURRENCY}\nالتوصيل (${deliveryOpt.label}): ${deliveryOpt.fee} ${CURRENCY}\nالإجمالي الكلي: ${total} ${CURRENCY}\n\n${paymentLine}\n\nالاسم: ${name}\nالتليفون: ${phone}\nالعنوان/ملاحظات: ${addr}`;
   }
 
-  function showCustomerReceipt(){
-    const deliveryOpt = getSelectedDeliveryFee();
-    let subtotal = 0;
-    const lines = Object.values(cart).map(line => {
-      const amount = line.price * line.qty;
-      subtotal += amount;
-      return `<div class="receipt-line"><span>${escapeAttr(line.name)} × ${line.qty}</span><span>${amount} ${CURRENCY}</span></div>`;
-    }).join('');
-    const total = subtotal + deliveryOpt.fee;
-    receiptContent.innerHTML = `
-      <div class="receipt-eta">طلبك هيوصل خلال ${DELIVERY_ETA_MINUTES} دقيقة</div>
-      <div class="receipt-lines">${lines}</div>
-      <div class="receipt-line"><span>التوصيل</span><span>${deliveryOpt.fee} ${CURRENCY}</span></div>
-      <div class="receipt-total">الإجمالي: ${total} ${CURRENCY}</div>
-      <div class="ticket-foot">تم إرسال طلبك للمطعم على واتساب.</div>
-    `;
-    receiptOverlay.classList.add('open');
+  function showOrderConfirmation(orderId, itemLines, total, prepMinutes){
+    const overlay = document.getElementById('orderConfirmOverlay');
+    if(!overlay) return;
+    document.getElementById('orderConfirmId').textContent = `رقم الطلب: #${orderId}`;
+    document.getElementById('orderConfirmItems').innerHTML = itemLines.map(it => `${escapeAttr(it.name)} × ${it.qty}`).join('<br>');
+    document.getElementById('orderConfirmTotal').textContent = `الإجمالي: ${total} ${CURRENCY}`;
+    document.getElementById('orderConfirmEta').textContent = `⏱ وقت التحضير والتوصيل التقريبي: ${prepMinutes || DEFAULT_PREP_MINUTES} دقيقة`;
+    overlay.classList.add('open');
+  }
+  const orderConfirmCloseBtn = document.getElementById('orderConfirmCloseBtn');
+  if(orderConfirmCloseBtn){
+    orderConfirmCloseBtn.addEventListener('click', () => {
+      document.getElementById('orderConfirmOverlay').classList.remove('open');
+    });
   }
 
-  document.getElementById('sendBtn').addEventListener('click', () => {
+  document.getElementById('sendBtn').addEventListener('click', async () => {
     if(Object.keys(cart).length === 0) return;
+
+    if(STORE_HOURS.isOpen === false){
+      alert(STORE_HOURS.closedMessage || DEFAULT_STORE_HOURS.closedMessage);
+      return;
+    }
 
     const name = document.getElementById('custName').value.trim();
     const phone = document.getElementById('custPhone').value.trim();
     const addr = document.getElementById('custAddr').value.trim();
     const paymentSelect = document.getElementById('paymentMethod');
     const pm = PAYMENT_METHODS.find(p => p.id === paymentSelect.value);
+    const sendBtnEl = document.getElementById('sendBtn');
 
     // لا يتم إرسال الطلب قبل استكمال بيانات العميل
     if(!name || !phone || !addr){
@@ -2222,18 +2920,68 @@
       return;
     }
 
-    const activeNumber = getActiveWhatsAppNumber();
-    if(!activeNumber){
-      alert('مفيش رقم واتساب مفعّل دلوقتي. لازم تفتح رقم من لوحة التحكم الأول.');
-      return;
+    const channel = ORDER_CHANNEL.type || 'whatsapp';
+    const message = buildWhatsAppMessage();
+
+    if(channel === 'telegram'){
+      const chatId = (ORDER_CHANNEL.telegramChatId || '').trim();
+      if(!chatId){
+        alert('مفيش Telegram Chat ID متسجل دلوقتي. لازم تحطه في لوحة التحكم الأول.');
+        return;
+      }
+      sendBtnEl.disabled = true;
+      sendBtnEl.textContent = 'بيترسل...';
+      try{
+        const res = await fetch('/api/telegram', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ chatId, message }),
+        });
+        if(!res.ok){
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'حصلت مشكلة في إرسال الطلب على تليجرام. جرب تاني أو كلم المطعم مباشرة.');
+          sendBtnEl.disabled = false;
+          sendBtnEl.textContent = 'إرسال الطلب';
+          return;
+        }
+      }catch(e){
+        alert('حصلت مشكلة في الاتصال بالسيرفر. جرب تاني.');
+        sendBtnEl.disabled = false;
+        sendBtnEl.textContent = 'إرسال الطلب';
+        return;
+      }
+      sendBtnEl.disabled = false;
+      sendBtnEl.textContent = 'إرسال الطلب';
+    } else {
+      const activeNumber = getActiveWhatsAppNumber();
+      if(!activeNumber){
+        alert('مفيش رقم واتساب مفعّل دلوقتي. لازم تفتح رقم من لوحة التحكم الأول.');
+        return;
+      }
+      const url = `https://wa.me/${activeNumber}?text=${encodeURIComponent(message)}`;
+      window.open(url, '_blank');
     }
 
-    const message = buildWhatsAppMessage();
-    const url = `https://wa.me/${activeNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-    showCustomerReceipt();
+    // تسجيل الطلب لتتبعه على الموقع + للإحصائيات في لوحة التحكم
+    const ids = Object.keys(cart);
+    const deliveryOpt = getSelectedDeliveryFee();
+    const itemLines = ids.map(id => ({ name: cart[id].name, qty: cart[id].qty }));
+    const subtotal = ids.reduce((s, id) => s + cart[id].price * cart[id].qty, 0);
+    const orderTotal = subtotal + deliveryOpt.fee;
+    const orderId = Date.now().toString(36).toUpperCase();
 
-    if(pm.type !== 'cod' && paymentProofDataUrl){
+    saveLastOrder(orderId, orderTotal, deliveryOpt.prepMinutes);
+    renderOrderTracker();
+    logOrderForStats(orderId, itemLines, deliveryOpt.label, orderTotal, name, phone);
+    saveCustomerProfile(phone, name, addr, { id: orderId, ts: Date.now(), items: itemLines, area: deliveryOpt.label, total: orderTotal });
+
+    showOrderConfirmation(orderId, itemLines, orderTotal, deliveryOpt.prepMinutes);
+
+    // تفريغ السلة بعد إرسال الطلب بنجاح
+    Object.keys(cart).forEach(id => delete cart[id]);
+    renderTicket();
+
+    if(channel !== 'telegram' && pm.type !== 'cod' && paymentProofDataUrl){
       setTimeout(() => {
         alert('متنساش ترفق صورة سكرين التحويل داخل شات الواتساب اللي فتح دلوقتي عشان يتأكد الأوردر.');
       }, 400);
@@ -2315,27 +3063,6 @@
   const deliveryAreasAdminEl = document.getElementById('deliveryAreasAdmin');
   const newBranchLabelInput = document.getElementById('newBranchLabelInput');
   const addBranchBtn = document.getElementById('addBranchBtn');
-  const deliveryEtaInput = document.getElementById('deliveryEtaMinutes');
-  const receiptOverlay = document.getElementById('receiptOverlay');
-  const receiptContent = document.getElementById('receiptContent');
-  const receiptCloseBtn = document.getElementById('receiptCloseBtn');
-
-  deliveryEtaInput.value = DELIVERY_ETA_MINUTES;
-  deliveryEtaInput.addEventListener('change', () => {
-    const value = parseInt(deliveryEtaInput.value, 10);
-    if(!Number.isInteger(value) || value < 1){
-      alert('اكتب وقت وصول صحيح بالدقائق.');
-      deliveryEtaInput.value = DELIVERY_ETA_MINUTES;
-      return;
-    }
-    DELIVERY_ETA_MINUTES = value;
-    saveDeliveryEtaMinutes();
-  });
-
-  receiptCloseBtn.addEventListener('click', () => receiptOverlay.classList.remove('open'));
-  receiptOverlay.addEventListener('click', event => {
-    if(event.target === receiptOverlay) receiptOverlay.classList.remove('open');
-  });
 
   const staffPanel = document.getElementById('staffPanel');
   const staffCloseBtn = document.getElementById('staffCloseBtn');
@@ -2361,6 +3088,7 @@
 
   function openLogin(){
     loginError.style.display = 'none';
+    loginError.textContent = DEFAULT_LOGIN_ERROR;
     loginUser.value = '';
     loginPass.value = '';
     loginOverlay.classList.add('open');
@@ -2371,15 +3099,26 @@
   function openAdminPanel(){
     buildAdminPanel();
     buildAccountSettingsPanel();
+    wireOrderSoundToggle();
+    startLiveOrdersPolling();
     adminPanel.classList.add('open');
+    resetInactivityTimer();
   }
-  function closeAdminPanel(){ adminPanel.classList.remove('open'); }
+  function closeAdminPanel(){
+    adminPanel.classList.remove('open');
+    stopLiveOrdersPolling();
+    clearInactivityTimer();
+  }
 
   function openStaffPanel(){
     buildStaffPanel();
     staffPanel.classList.add('open');
+    resetInactivityTimer();
   }
-  function closeStaffPanel(){ staffPanel.classList.remove('open'); }
+  function closeStaffPanel(){
+    staffPanel.classList.remove('open');
+    clearInactivityTimer();
+  }
   staffCloseBtn.addEventListener('click', closeStaffPanel);
   staffLogoutBtn.addEventListener('click', () => {
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
@@ -2397,15 +3136,49 @@
   loginCloseBtn.addEventListener('click', closeLogin);
   adminCloseBtn.addEventListener('click', closeAdminPanel);
 
+  // ---------- حماية تسجيل الدخول: إيقاف مؤقت بعد محاولات فاشلة متكررة ----------
+  const LOGIN_LOCKOUT_KEY = 'maxez_login_lockout_v1';
+  const MAX_LOGIN_ATTEMPTS = 5;
+  const LOCKOUT_MINUTES = 10;
+  const DEFAULT_LOGIN_ERROR = 'اسم المستخدم أو كلمة المرور غير صحيحة';
+
+  function getLockoutState(){
+    try{
+      const raw = localStorage.getItem(LOGIN_LOCKOUT_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed && typeof parsed === 'object' ? parsed : { attempts: 0, lockedUntil: 0 };
+    }catch(e){ return { attempts: 0, lockedUntil: 0 }; }
+  }
+  function setLockoutState(state){
+    localStorage.setItem(LOGIN_LOCKOUT_KEY, JSON.stringify(state));
+  }
+
   function attemptLogin(){
+    const state = getLockoutState();
+    if(state.lockedUntil && Date.now() < state.lockedUntil){
+      const minsLeft = Math.ceil((state.lockedUntil - Date.now()) / 60000);
+      loginError.textContent = `تم إيقاف محاولات الدخول مؤقتًا بسبب محاولات فاشلة كتير. حاول تاني بعد ${minsLeft} دقيقة.`;
+      loginError.style.display = 'block';
+      return;
+    }
+
     const u = loginUser.value.trim();
     const p = loginPass.value;
     const match = USERS.find(usr => usr.username === u && usr.password === p);
     if(match){
+      setLockoutState({ attempts: 0, lockedUntil: 0 });
       sessionStorage.setItem(ADMIN_SESSION_KEY, match.username);
       closeLogin();
       openPanelForUser(match);
     } else {
+      const attempts = (state.attempts || 0) + 1;
+      if(attempts >= MAX_LOGIN_ATTEMPTS){
+        setLockoutState({ attempts: 0, lockedUntil: Date.now() + LOCKOUT_MINUTES * 60000 });
+        loginError.textContent = `محاولات دخول غلط كتير. تم إيقاف الدخول ${LOCKOUT_MINUTES} دقايق حماية للبيانات.`;
+      } else {
+        setLockoutState({ attempts, lockedUntil: 0 });
+        loginError.textContent = `${DEFAULT_LOGIN_ERROR} — متبقي ${MAX_LOGIN_ATTEMPTS - attempts} محاولات قبل الإيقاف المؤقت.`;
+      }
       loginError.style.display = 'block';
     }
   }
@@ -2416,6 +3189,35 @@
   logoutBtn.addEventListener('click', () => {
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
     closeAdminPanel();
+  });
+
+  // ---------- قفل تلقائي بعد فترة عدم استخدام ----------
+  const INACTIVITY_LOGOUT_MINUTES = 8;
+  let inactivityTimer = null;
+
+  function isAnyAdminPanelOpen(){
+    return (adminPanel && adminPanel.classList.contains('open')) ||
+           (staffPanel && staffPanel.classList.contains('open'));
+  }
+
+  function resetInactivityTimer(){
+    if(inactivityTimer) clearTimeout(inactivityTimer);
+    if(!isAnyAdminPanelOpen()) return;
+    inactivityTimer = setTimeout(() => {
+      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+      closeAdminPanel();
+      closeStaffPanel();
+      alert('تم تسجيل الخروج تلقائيًا بسبب عدم النشاط لفترة طويلة، حماية لبيانات العملاء.');
+    }, INACTIVITY_LOGOUT_MINUTES * 60000);
+  }
+  function clearInactivityTimer(){
+    if(inactivityTimer){ clearTimeout(inactivityTimer); inactivityTimer = null; }
+  }
+
+  ['click', 'keydown', 'mousemove', 'touchstart'].forEach(evt => {
+    document.addEventListener(evt, () => {
+      if(isAnyAdminPanelOpen()) resetInactivityTimer();
+    }, { passive: true });
   });
 
   function newItemId(){
@@ -2477,18 +3279,6 @@
                   <option value="no" ${item.heatChoice === false ? 'selected' : ''}>حار/عادي: بدون اختيار</option>
                 </select>
               </div>
-              <div class="product-schedule">
-                <label><input type="checkbox" data-role="schedule-enabled" data-cat="${catIdx}" data-item="${itemIdx}" ${item.schedule?.enabled ? 'checked' : ''}> جدولة ظهور الصنف</label>
-                <div class="schedule-details" ${item.schedule?.enabled ? '' : 'hidden'}>
-                  <span>الأيام:</span>
-                  ${[['الأحد',0],['الاثنين',1],['الثلاثاء',2],['الأربعاء',3],['الخميس',4],['الجمعة',5],['السبت',6]].map(([label, day]) =>
-                    `<label><input type="checkbox" data-role="schedule-day" data-cat="${catIdx}" data-item="${itemIdx}" value="${day}" ${item.schedule?.days?.includes(day) ? 'checked' : ''}> ${label}</label>`
-                  ).join('')}
-                  <label>من <input type="time" data-role="schedule-start" data-cat="${catIdx}" data-item="${itemIdx}" value="${escapeAttr(item.schedule?.start || '')}"></label>
-                  <label>إلى <input type="time" data-role="schedule-end" data-cat="${catIdx}" data-item="${itemIdx}" value="${escapeAttr(item.schedule?.end || '')}"></label>
-                  <small>لو وقت البداية أكبر من النهاية، الجدولة تمتد بعد منتصف الليل.</small>
-                </div>
-              </div>
               <div class="admin-sizes">${sizesHtml}
                 <button class="admin-mini-btn" type="button" data-action="add-size" data-cat="${catIdx}" data-item="${itemIdx}">+ سعر/حجم</button>
               </div>
@@ -2512,8 +3302,8 @@
     adminCategoriesEl.querySelectorAll('input[data-role], textarea[data-role]').forEach(inp => {
       inp.addEventListener('input', handleAdminFieldChange);
     });
-    adminCategoriesEl.querySelectorAll('select[data-role="item-heat"], input[data-role^="schedule-"]').forEach(el => {
-      el.addEventListener('change', handleAdminFieldChange);
+    adminCategoriesEl.querySelectorAll('select[data-role="item-heat"]').forEach(sel => {
+      sel.addEventListener('change', handleAdminFieldChange);
     });
     adminCategoriesEl.querySelectorAll('button[data-action]').forEach(btn => {
       btn.addEventListener('click', handleAdminAction);
@@ -2576,22 +3366,6 @@
 
     if(role === 'item-name'){ item.name = el.value; return; }
     if(role === 'item-desc'){ item.desc = el.value; return; }
-    if(role && role.startsWith('schedule-')){
-      item.schedule ||= { enabled:false, days:[], start:'', end:'' };
-      if(role === 'schedule-enabled'){
-        item.schedule.enabled = el.checked;
-        if(el.checked && !item.schedule.days.length) item.schedule.days = [0,1,2,3,4,5,6];
-        buildAdminPanel();
-      }
-      if(role === 'schedule-day'){
-        item.schedule.days = [...adminCategoriesEl.querySelectorAll(`input[data-role="schedule-day"][data-cat="${catIdx}"][data-item="${itemIdx}"]:checked`)]
-          .map(input => parseInt(input.value, 10));
-        renderMenu();
-      }
-      if(role === 'schedule-start'){ item.schedule.start = el.value; renderMenu(); }
-      if(role === 'schedule-end'){ item.schedule.end = el.value; renderMenu(); }
-      return;
-    }
     if(role === 'item-heat'){
       if(el.value === 'yes') item.heatChoice = true;
       else if(el.value === 'no') item.heatChoice = false;
@@ -2715,6 +3489,12 @@
           <input type="text" value="${escapeAttr(group.label)}" data-role="group-label" data-group="${gIdx}">
           <span class="delivery-admin-count">${group.areas.length} منطقة</span>
         </summary>
+        <div class="admin-hours-row">
+          <label style="font-size:12px; display:flex; align-items:center; gap:6px;">
+            وقت التحضير والتوصيل التقريبي (دقيقة):
+            <input type="number" value="${group.prepMinutes || DEFAULT_PREP_MINUTES}" data-role="group-prep" data-group="${gIdx}" style="width:64px;" min="5" step="5">
+          </label>
+        </div>
         <div class="delivery-admin-areas">
           ${group.areas.map(([label, fee], aIdx) => `
             <div class="delivery-admin-area-row">
@@ -2732,6 +3512,14 @@
         <button class="admin-mini-btn danger" type="button" data-action="del-group" data-group="${gIdx}">حذف الفرع كله</button>
       </details>
     `).join('') || '<div style="font-size:12.5px; color:#7a746c;">مفيش فروع مضافة لسه.</div>';
+
+    deliveryAreasAdminEl.querySelectorAll('input[data-role="group-prep"]').forEach(inp => {
+      inp.addEventListener('click', e => e.stopPropagation());
+      inp.addEventListener('change', () => {
+        const g = DELIVERY_GROUPS[parseInt(inp.dataset.group, 10)];
+        if(g){ g.prepMinutes = parseInt(inp.value, 10) || DEFAULT_PREP_MINUTES; commitDeliveryChange(); }
+      });
+    });
 
     deliveryAreasAdminEl.querySelectorAll('input[data-role="group-label"]').forEach(inp => {
       inp.addEventListener('click', e => e.stopPropagation());
@@ -2814,6 +3602,10 @@
 
     buildPaymentMethodsSettings();
     buildDeliveryAreasAdmin();
+    buildStoreHoursAdmin();
+    buildOrderChannelAdmin();
+    renderOrderStats();
+    renderAdminReviewsList();
 
     waNumbersListEl.innerHTML = WHATSAPP_NUMBERS.map(w => `
       <div class="admin-wa-row">
@@ -3085,6 +3877,10 @@
   renderDeliveryOptions();
   renderPaymentOptions();
   renderTicket();
+  renderClosedBanner();
+  renderOrderTracker();
+  renderReviews();
+  wireCustomerLookup();
 
   // اسحب آخر نسخة من السيرفر لحظة ما الصفحة تفتح، عشان كل جهاز يشوف آخر تعديل
   syncMenuFromServer();
@@ -3092,7 +3888,9 @@
   syncWhatsAppFromServer();
   syncPaymentFromServer();
   syncDeliveryFromServer();
-  syncDeliveryEtaMinutes();
+  syncStoreHoursFromServer();
+  syncOrderChannelFromServer();
+  syncReviewsFromServer();
 </script>
 
 </body>
