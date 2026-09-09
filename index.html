@@ -969,25 +969,6 @@
     font-size:12.5px;
   }
   .admin-review-row:first-of-type{border-top:none;}
-  .customer-history-box{
-    background:rgba(201,154,59,.1);
-    border:1px solid rgba(201,154,59,.35);
-    border-radius:6px;
-    padding:10px 12px;
-    font-family:'Tajawal', sans-serif;
-    font-size:12.5px;
-  }
-  .customer-history-title{font-weight:700; margin-bottom:8px;}
-  .customer-history-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-    padding:6px 0;
-    border-top:1px dashed rgba(201,154,59,.35);
-  }
-  .customer-history-row:first-of-type{border-top:none;}
-  .customer-history-items{flex:1; color:#4a443c;}
   .delivery-admin-group{
     border:1px solid var(--line);
     border-radius:6px;
@@ -1328,7 +1309,6 @@
           <label for="custPhone">التليفون</label>
           <input id="custPhone" type="tel" placeholder="01xxxxxxxxx">
         </div>
-        <div id="customerHistoryBox" class="customer-history-box" style="display:none;"></div>
         <div>
           <label for="custAddr">عنوان التوصيل / ملاحظات</label>
           <textarea id="custAddr" rows="2" placeholder="الشارع، المبنى، الدور، أو 'استلام من الفرع'"></textarea>
@@ -1808,113 +1788,6 @@
       const trimmed = current.slice(-300);
       await apiSet('orders', trimmed);
     }catch(e){ console.warn('logOrderForStats فشل:', e); }
-  }
-
-  // ---------- Customer profiles (name/phone/address + last 10 orders) ----------
-  async function saveCustomerProfile(phone, name, addr, orderRecord){
-    try{
-      const cleanPhone = (phone || '').replace(/\s+/g, '');
-      if(!cleanPhone) return;
-      const remote = await apiGet('customers');
-      const customers = (remote && typeof remote === 'object' && !Array.isArray(remote)) ? remote : {};
-      const existing = customers[cleanPhone] || { name, phone: cleanPhone, addresses: [], orders: [] };
-      existing.name = name || existing.name;
-      if(addr && !existing.addresses.includes(addr)){
-        existing.addresses = [addr, ...existing.addresses].slice(0, 5);
-      }
-      existing.orders = [orderRecord, ...(existing.orders || [])].slice(0, 10);
-      customers[cleanPhone] = existing;
-      await apiSet('customers', customers);
-    }catch(e){ console.warn('saveCustomerProfile فشل:', e); }
-  }
-
-  let customerLookupTimer = null;
-  function wireCustomerLookup(){
-    const phoneInput = document.getElementById('custPhone');
-    if(!phoneInput) return;
-    phoneInput.addEventListener('input', () => {
-      clearTimeout(customerLookupTimer);
-      customerLookupTimer = setTimeout(() => lookupCustomerByPhone(phoneInput.value.trim()), 600);
-    });
-  }
-
-  async function lookupCustomerByPhone(phone){
-    const box = document.getElementById('customerHistoryBox');
-    const cleanPhone = (phone || '').replace(/\s+/g, '');
-    if(!box) return;
-    if(!cleanPhone || cleanPhone.length < 8){ box.style.display = 'none'; return; }
-
-    const remote = await apiGet('customers');
-    const customers = (remote && typeof remote === 'object' && !Array.isArray(remote)) ? remote : {};
-    const profile = customers[cleanPhone];
-    if(!profile){ box.style.display = 'none'; return; }
-
-    const nameInput = document.getElementById('custName');
-    const addrInput = document.getElementById('custAddr');
-    if(nameInput && !nameInput.value.trim() && profile.name) nameInput.value = profile.name;
-    if(addrInput && !addrInput.value.trim() && profile.addresses && profile.addresses[0]) addrInput.value = profile.addresses[0];
-
-    renderCustomerHistory(profile);
-  }
-
-  function renderCustomerHistory(profile){
-    const box = document.getElementById('customerHistoryBox');
-    if(!box) return;
-    if(!profile.orders || !profile.orders.length){ box.style.display = 'none'; return; }
-
-    box.style.display = 'block';
-    box.innerHTML = `
-      <div class="customer-history-title">👋 أهلاً بيك تاني${profile.name ? ' يا ' + escapeAttr(profile.name) : ''}! آخر طلباتك:</div>
-      ${profile.orders.slice(0, 10).map((o, i) => `
-        <div class="customer-history-row">
-          <div class="customer-history-items">${(o.items || []).map(it => `${escapeAttr(it.name)} x${it.qty}`).join('، ')}</div>
-          <button class="admin-mini-btn" type="button" data-repeat-order="${i}">اطلب نفس الطلب تاني</button>
-        </div>
-      `).join('')}
-    `;
-
-    box.querySelectorAll('button[data-repeat-order]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.repeatOrder, 10);
-        const order = profile.orders[idx];
-        if(order) repeatOrder(order);
-      });
-    });
-  }
-
-  function findVariantByDisplayName(displayName){
-    const match = displayName.match(/^(.*?)\s*\((حار|عادي)\)$/);
-    let baseName = displayName;
-    let heat = null;
-    if(match){
-      baseName = match[1].trim();
-      heat = match[2] === 'حار' ? 'hot' : 'regular';
-    }
-    const foundId = Object.keys(variantIndex).find(vid => variantIndex[vid].name === baseName);
-    return foundId ? { id: foundId, heat } : null;
-  }
-
-  function repeatOrder(order){
-    let addedCount = 0;
-    let missed = 0;
-    (order.items || []).forEach(it => {
-      const found = findVariantByDisplayName(it.name);
-      if(found){
-        for(let i = 0; i < (it.qty || 1); i++) addToCart(found.id, found.heat);
-        addedCount++;
-      } else {
-        missed++;
-      }
-    });
-    if(addedCount > 0){
-      alert(missed > 0
-        ? 'ضفنالك الأصناف المتاحة من طلبك القديم، وبعضها للأسف مبقاش متاح دلوقتي.'
-        : 'تمام! ضفنالك نفس طلبك القديم في السلة.');
-      const linesEl = document.getElementById('ticketLines');
-      if(linesEl) linesEl.scrollIntoView({behavior: 'smooth', block: 'start'});
-    } else {
-      alert('للأسف الأصناف دي مبقتش متاحة دلوقتي.');
-    }
   }
 
   // ---------- Live orders + sound/notification alert (admin) ----------
@@ -3089,7 +2962,6 @@
     saveLastOrder(orderId, orderTotal, deliveryOpt.prepMinutes);
     renderOrderTracker();
     logOrderForStats(orderId, itemLines, deliveryOpt.label, orderTotal, name, phone);
-    saveCustomerProfile(phone, name, addr, { id: orderId, ts: Date.now(), items: itemLines, area: deliveryOpt.label, total: orderTotal });
 
     showOrderConfirmation(orderId, itemLines, orderTotal, deliveryOpt.prepMinutes);
 
@@ -3999,7 +3871,6 @@
   renderClosedBanner();
   renderOrderTracker();
   renderReviews();
-  wireCustomerLookup();
 
   // اسحب آخر نسخة من السيرفر لحظة ما الصفحة تفتح، عشان كل جهاز يشوف آخر تعديل
   syncMenuFromServer();
