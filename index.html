@@ -886,6 +886,38 @@
     border-top:1px dashed var(--line);
     font-size:13px;
   }
+
+  /* ---------- Delivery / schedules / statistics admin ---------- */
+  .admin-delivery-group{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0;background:#fffdf8;}
+  .admin-delivery-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .admin-delivery-head input{margin:0;flex:1;min-width:150px;}
+  .admin-delivery-area{display:grid;grid-template-columns:1.5fr .7fr auto;gap:7px;align-items:center;padding:7px 0;border-top:1px dashed var(--line);}
+  .admin-delivery-area input{margin:0;padding:7px;}
+  .admin-schedule-box{border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px;background:rgba(255,253,248,.7);}
+  .admin-schedule-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+  .admin-schedule-row input[type=time]{width:115px;margin:0;}
+  .day-checks{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0;}
+  .day-check{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--line);border-radius:999px;padding:4px 7px;font-size:11px;background:#fffefc;}
+  .schedule-status{font-size:11px;color:#7a746c;margin-top:5px;}
+  .timer-banner{display:none;max-width:1180px;margin:12px auto 0;padding:10px 16px;border:1px solid var(--line);background:#fffdf8;text-align:center;font-family:'Tajawal',sans-serif;font-weight:700;}
+  .timer-banner.show{display:block;}
+  .stats-card{border:1px solid var(--line);border-radius:8px;padding:14px;background:#fffdf8;margin-top:10px;}
+  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .stat-box{border:1px solid var(--line);padding:12px;text-align:center;border-radius:6px;background:rgba(255,253,248,.7);}
+  .stat-box strong{display:block;font-family:'IBM Plex Mono',monospace;font-size:18px;margin-top:4px;}
+  .order-stat-note{font-size:11px;color:#7a746c;margin-top:8px;line-height:1.6;}
+  .order-receipt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:18px;z-index:9998;}
+  .order-receipt-overlay.show{display:flex;}
+  .order-receipt{width:min(430px,100%);background:#fffdf8;border:1px solid var(--line);border-radius:10px;padding:20px;box-shadow:0 15px 45px rgba(0,0,0,.22);text-align:right;}
+  .receipt-head{text-align:center;border-bottom:1px dashed var(--line);padding-bottom:12px;margin-bottom:12px;}
+  .receipt-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed rgba(0,0,0,.08);}
+  .receipt-total{font-size:20px;font-weight:800;margin-top:10px;display:flex;justify-content:space-between;}
+  .receipt-eta{margin:14px 0;padding:12px;background:rgba(140,31,31,.06);border:1px solid rgba(140,31,31,.15);border-radius:8px;text-align:center;font-weight:800;}
+  .receipt-actions{display:flex;gap:8px;margin-top:14px;}
+  .receipt-actions button{flex:1;padding:10px;border-radius:6px;border:1px solid var(--line);cursor:pointer;font-family:inherit;}
+
+  @media(max-width:600px){.admin-delivery-area{grid-template-columns:1fr 90px auto}.stats-grid{grid-template-columns:1fr;}}
+
 </style>
 </head>
 <body>
@@ -946,6 +978,30 @@
       </div>
 
       <div class="admin-settings-section">
+        <h4>🚚 الفروع وخدمة التوصيل</h4>
+        <div id="deliverySettingsList"></div>
+        <div class="admin-save-note">غيّر اسم الفرع، اسم أي منطقة، أو سعر التوصيل. التعديلات بتتحفظ على السيرفر وتظهر لكل الأجهزة.</div>
+      </div>
+
+      <div class="admin-settings-section">
+        <h4>⏱️ مواعيد تشغيل الأقسام</h4>
+        <div id="scheduleSettingsList"></div>
+        <div class="admin-save-note">فعّل الجدول لأي قسم وحدد أيام الأسبوع ووقت البداية والنهاية. القسم يفتح ويقفل تلقائياً حسب المواعيد.</div>
+      </div>
+
+      <div class="admin-settings-section">
+        <h4>🔔 تنبيه الأوردرات الجديدة</h4>
+        <button class="admin-mini-btn" id="enableOrderAlertsBtn" type="button">تفعيل صوت وإشعارات الأوردرات</button>
+        <span class="admin-save-note" id="orderAlertsNote">الصوت يحتاج تفعيل مرة واحدة من المتصفح.</span>
+      </div>
+
+      <div class="admin-settings-section">
+        <h4>📊 إحصائيات الأوردرات</h4>
+        <button class="admin-mini-btn" id="showOrderStatsBtn" type="button">حساب أوردرات اليوم</button>
+        <div id="orderStatsBox"></div>
+      </div>
+
+      <div class="admin-settings-section">
         <h4>المستخدمين — صلاحية فتح/قفل الأقسام والأصناف بس</h4>
         <div id="staffUsersList"></div>
         <div class="admin-add-row">
@@ -989,6 +1045,18 @@
   </div>
 </div>
 
+<div class="order-receipt-overlay" id="orderReceiptOverlay">
+  <div class="order-receipt">
+    <div class="receipt-head"><div style="font-size:12px;letter-spacing:.08em;">إيصال الطلب</div><h2 style="margin:5px 0;">ماكسز</h2><div id="receiptOrderNo" style="font-size:12px;"></div></div>
+    <div class="receipt-row"><span>الفرع</span><strong id="receiptBranch">—</strong></div>
+    <div class="receipt-row"><span>طريقة الاستلام</span><strong id="receiptDelivery">—</strong></div>
+    <div class="receipt-row"><span>الإجمالي</span><strong id="receiptTotal">—</strong></div>
+    <div class="receipt-eta" id="receiptEta">متوقع الوصول خلال — دقيقة</div>
+    <div style="font-size:12px;color:#6f6a63;text-align:center;line-height:1.7;">تم تسجيل طلبك بنجاح، وسيتم فتح واتساب لإرساله للمطعم.</div>
+    <div class="receipt-actions"><button type="button" id="closeReceiptBtn">إغلاق</button><button type="button" id="receiptWhatsAppBtn" style="font-weight:800;">فتح واتساب</button></div>
+  </div>
+</div>
+
 <header>
   <div class="eyebrow">اطلب مقدماً</div>
   <h1>ماكسز</h1>
@@ -999,6 +1067,7 @@
 <nav class="category-nav" aria-label="أقسام المنيو">
   <div class="category-nav-inner" id="categoryNav"></div>
 </nav>
+<div class="timer-banner" id="scheduleTimerBanner"></div>
 
 <div class="wrap">
   <main id="menu"></main>
@@ -1023,9 +1092,9 @@
           </select>
         </div>
 
-        <div class="area-search-wrap" id="areaSearchWrap" style="display:none;">
-          <label for="areaSearch">ابحث عن منطقتك</label>
-          <input id="areaSearch" type="search" placeholder="اكتب اسم المنطقة..." autocomplete="off">
+        <div class="area-search-wrap" id="areaSearchWrap">
+          <label for="areaSearch">ابحث عن منطقتك داخل الفرع</label>
+          <input id="areaSearch" type="search" placeholder="اختار الفرع ثم اكتب اسم المنطقة..." autocomplete="off">
           <div class="area-count" id="areaCount"></div>
         </div>
 
@@ -1284,6 +1353,45 @@
       ],
     },
   ];
+
+  // ---------- Editable delivery settings ----------
+  const DELIVERY_STORAGE_KEY = 'maxez_delivery_settings_v2';
+  const DEFAULT_DELIVERY_GROUPS = JSON.parse(JSON.stringify(DELIVERY_GROUPS));
+  function loadDeliverySettings(){
+    try{
+      const saved = localStorage.getItem(DELIVERY_STORAGE_KEY);
+      if(saved){
+        const parsed = JSON.parse(saved);
+        if(parsed && Array.isArray(parsed.groups)) return parsed;
+      }
+    }catch(e){}
+    return {enabled:true, groups:JSON.parse(JSON.stringify(DEFAULT_DELIVERY_GROUPS))};
+  }
+  let DELIVERY_SETTINGS = loadDeliverySettings();
+  let DELIVERY_GROUPS_EDITABLE = DELIVERY_SETTINGS.groups;
+  function saveDeliverySettings(){
+    DELIVERY_SETTINGS.groups = DELIVERY_GROUPS_EDITABLE;
+    localStorage.setItem(DELIVERY_STORAGE_KEY, JSON.stringify(DELIVERY_SETTINGS));
+    apiSet('delivery', DELIVERY_SETTINGS);
+  }
+  async function syncDeliveryFromServer(){
+    const remote = await apiGet('delivery');
+    if(remote && Array.isArray(remote.groups)){
+      DELIVERY_SETTINGS = remote;
+      DELIVERY_GROUPS_EDITABLE = remote.groups;
+      DELIVERY_GROUPS.length = 0;
+      remote.groups.forEach(g => DELIVERY_GROUPS.push(g));
+      rebuildDeliveryOptions();
+      if(typeof buildDeliverySettingsPanel === 'function' && adminPanel && adminPanel.classList.contains('open')) buildDeliverySettingsPanel();
+      renderDeliveryOptions();
+      renderTicket();
+    }
+  }
+  function rebuildDeliveryOptions(){
+    DELIVERY_OPTIONS.length = 0;
+    DELIVERY_OPTIONS.push({id:'pickup',label:'استلام من الفرع (بدون توصيل)',fee:0,group:'استلام من الفرع'});
+    DELIVERY_GROUPS.forEach(group => (group.areas||[]).forEach(([label,fee],index)=>DELIVERY_OPTIONS.push({id:`${group.id}-${index}`,label,fee,group:group.label})));
+  }
 
   const DELIVERY_OPTIONS = [
     { id: "pickup", label: "استلام من الفرع (بدون توصيل)", fee: 0, group: "استلام من الفرع" },
@@ -1636,6 +1744,8 @@
     let visibleIndex = -1;
     MENU.forEach((cat, catIndex) => {
       if(cat.available === false) return; // القسم مقفول مؤقتاً — متبقاش يظهر للزبون
+      if(!scheduleIsOpen(cat)) return; // مواعيد التشغيل
+
       visibleIndex++;
       const renderIndex = visibleIndex;
       const isOffer = cat.category === "عروض الأجازة";
@@ -1742,28 +1852,52 @@
     const areaCount = document.getElementById('areaCount');
     const select = document.getElementById('deliveryZone');
 
+    if(DELIVERY_SETTINGS.enabled === false){
+      branchSelect.innerHTML = '<option value="">التوصيل متوقف حالياً</option>';
+      branchSelect.disabled = true; areaSearch.value=''; areaSearch.disabled=true; select.disabled=true;
+      select.innerHTML = '<option value="">خدمة التوصيل متوقفة حالياً</option>';
+      areaCount.textContent = '';
+      return;
+    }
+    branchSelect.disabled = false; areaSearch.disabled=false;
+
+    // زر/اختيار الفرع مستقل عن سيرش المنطقة، مع الحفاظ على كل المنتجات كما هي.
     branchSelect.innerHTML =
       '<option value="">اختار الفرع أولاً</option>' +
       DELIVERY_GROUPS.map(group =>
         `<option value="${group.id}">${group.label}</option>`
       ).join('');
 
+    // السيرش يظل ظاهرًا، لكنه لا يعرض مناطق إلا بعد اختيار الفرع.
+    areaSearchWrap.style.display = 'block';
+
+    function normalizeArabic(value){
+      return String(value || '')
+        .toLowerCase()
+        .replace(/[أإآ]/g, 'ا')
+        .replace(/ى/g, 'ي')
+        .replace(/ة/g, 'ه')
+        .replace(/ؤ/g, 'و')
+        .replace(/ئ/g, 'ي')
+        .replace(/ـ/g, '')
+        .trim();
+    }
+
     function renderAreas(){
       const branchId = branchSelect.value;
       const group = DELIVERY_GROUPS.find(g => g.id === branchId);
-      const query = areaSearch.value.trim().toLowerCase();
+      const query = normalizeArabic(areaSearch.value);
 
       if(!group){
-        areaSearchWrap.style.display = 'none';
         select.disabled = true;
         select.innerHTML = '<option value="">اختار الفرع أولاً</option>';
-        areaCount.textContent = '';
+        areaCount.textContent = 'اختار الفرع أولاً ثم اكتب اسم منطقتك في السيرش';
         return;
       }
 
       const filtered = group.areas
         .map(([label, fee], index) => ({ label, fee, index }))
-        .filter(({label}) => label.toLowerCase().includes(query));
+        .filter(({label}) => !query || normalizeArabic(label).includes(query));
 
       select.disabled = false;
       select.innerHTML =
@@ -1772,21 +1906,21 @@
           `<option value="${group.id}-${index}">${label} — ${fee} ${CURRENCY}</option>`
         ).join('');
 
-      areaSearchWrap.style.display = 'block';
       areaCount.textContent = query
-        ? `تم العثور على ${filtered.length} منطقة`
+        ? (filtered.length ? `تم العثور على ${filtered.length} منطقة في ${group.label}` : 'مفيش منطقة مطابقة في الفرع ده')
         : `${group.areas.length} منطقة متاحة في ${group.label}`;
 
-      // إعادة اختيار المنطقة الحالية إن كانت ما زالت ضمن نتائج البحث
       if(select.dataset.selectedValue && filtered.some(({index}) =>
         `${group.id}-${index}` === select.dataset.selectedValue
       )){
         select.value = select.dataset.selectedValue;
       } else {
         select.value = '';
+        select.dataset.selectedValue = '';
       }
     }
 
+    // تغيير الفرع = تصفير البحث وإظهار مناطق الفرع الجديد.
     branchSelect.addEventListener('change', () => {
       areaSearch.value = '';
       select.dataset.selectedValue = '';
@@ -1794,6 +1928,7 @@
       renderTicket();
     });
 
+    // الكتابة في السيرش تصفي مناطق الفرع المختار فورًا.
     areaSearch.addEventListener('input', renderAreas);
 
     select.addEventListener('change', () => {
@@ -1801,15 +1936,14 @@
       renderTicket();
     });
 
-    // الاستلام من الفرع يظل متاحًا كخيار مستقل، بدون إجبار المستخدم على اختيار منطقة.
     select.dataset.selectedValue = '';
+    renderAreas();
   }
 
   function getSelectedDeliveryFee(){
     const branchSelect = document.getElementById('branchSelect');
     const select = document.getElementById('deliveryZone');
 
-    // لو المستخدم لم يختر منطقة، لا نحسب رسوم توصيل.
     if(!select.value){
       return DELIVERY_OPTIONS[0];
     }
@@ -2028,8 +2162,10 @@
     }
 
     const message = buildWhatsAppMessage();
+    const order = recordOrder();
     const url = `https://wa.me/${activeNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
+    showOrderReceipt(order, url);
 
     if(pm.type !== 'cod' && paymentProofDataUrl){
       setTimeout(() => {
@@ -2037,6 +2173,120 @@
       }, 400);
     }
   });
+
+  // ---------- Customer receipt + admin order alerts ----------
+  let lastOpenedWhatsAppUrl='';
+  function showOrderReceipt(order,url){
+    lastOpenedWhatsAppUrl=url||'';
+    const branch=DELIVERY_GROUPS.find(g=>g.id===order.branchId);
+    document.getElementById('receiptOrderNo').textContent='رقم الطلب: '+order.id.slice(-8).toUpperCase();
+    document.getElementById('receiptBranch').textContent=order.branchName||'—';
+    document.getElementById('receiptDelivery').textContent=order.deliveryFee>0?'توصيل — '+order.deliveryFee+' '+CURRENCY:'استلام من الفرع';
+    document.getElementById('receiptTotal').textContent=Number(order.total).toFixed(2)+' '+CURRENCY;
+    document.getElementById('receiptEta').textContent='⏱️ متوقع وصول الطلب خلال '+(Number(order.etaMinutes)||45)+' دقيقة تقريباً';
+    document.getElementById('orderReceiptOverlay').classList.add('show');
+  }
+  document.getElementById('closeReceiptBtn').addEventListener('click',()=>document.getElementById('orderReceiptOverlay').classList.remove('show'));
+  document.getElementById('receiptWhatsAppBtn').addEventListener('click',()=>{if(lastOpenedWhatsAppUrl)window.open(lastOpenedWhatsAppUrl,'_blank');});
+
+  let orderAlertEnabled=false, lastKnownOrderId=null, orderAlertInterval=null;
+  function playOrderAlertSound(){
+    try{ const Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx)return; const ctx=new Ctx(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.setValueAtTime(.0001,ctx.currentTime); g.gain.exponentialRampToValueAtTime(.18,ctx.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.55); o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+.6); }catch(e){}
+  }
+  async function checkForNewOrders(){
+    if(!orderAlertEnabled || !getCurrentUser() || getCurrentUser().role!=='admin') return;
+    const remote=await apiGet('orders');
+    if(!Array.isArray(remote)||!remote.length)return;
+    const newest=remote[remote.length-1];
+    if(lastKnownOrderId===null){ lastKnownOrderId=newest.id; return; }
+    if(newest.id!==lastKnownOrderId){
+      const previous=lastKnownOrderId; lastKnownOrderId=newest.id;
+      playOrderAlertSound();
+      if('Notification' in window && Notification.permission==='granted') new Notification('ماكسز — أوردر جديد 🔔',{body:`أوردر ${newest.id.slice(-8).toUpperCase()} — ${Number(newest.total||0).toFixed(2)} جنيه`});
+      if(document.getElementById('orderStatsBox') && adminPanel.classList.contains('open')) buildOrderStatsPanel();
+    }
+  }
+  async function enableOrderAlerts(){
+    orderAlertEnabled=true;
+    if('Notification' in window && Notification.permission==='default'){ try{ await Notification.requestPermission(); }catch(e){} }
+    playOrderAlertSound();
+    const note=document.getElementById('orderAlertsNote'); if(note) note.textContent=('Notification' in window && Notification.permission==='granted')?'✅ الصوت وإشعارات المتصفح مفعّلين.':'✅ الصوت مفعّل؛ إشعارات المتصفح غير مسموح بها.';
+    checkForNewOrders();
+    clearInterval(orderAlertInterval); orderAlertInterval=setInterval(checkForNewOrders,8000);
+  }
+  document.getElementById('enableOrderAlertsBtn').addEventListener('click',enableOrderAlerts);
+
+  // ---------- Automatic category schedules ----------
+  const SCHEDULE_STORAGE_KEY = 'maxez_category_schedules_v1';
+  const WEEK_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  function defaultSchedule(){ return {enabled:false, days:[0,1,2,3,4,5,6], start:'11:00', end:'04:40'}; }
+  function loadSchedules(){
+    try{ const x=localStorage.getItem(SCHEDULE_STORAGE_KEY); if(x) return JSON.parse(x); }catch(e){}
+    return {};
+  }
+  let CATEGORY_SCHEDULES = loadSchedules();
+  function saveSchedules(){ localStorage.setItem(SCHEDULE_STORAGE_KEY,JSON.stringify(CATEGORY_SCHEDULES)); apiSet('schedules',CATEGORY_SCHEDULES); }
+  async function syncSchedulesFromServer(){
+    const remote=await apiGet('schedules');
+    if(remote && typeof remote==='object'){ CATEGORY_SCHEDULES=remote; localStorage.setItem(SCHEDULE_STORAGE_KEY,JSON.stringify(remote)); renderMenu(); updateScheduleTimer(); if(typeof buildScheduleSettingsPanel==='function'&&adminPanel&&adminPanel.classList.contains('open')) buildScheduleSettingsPanel(); }
+  }
+  function timeToMinutes(t){ const [h,m]=String(t||'00:00').split(':').map(Number); return (h*60)+(m||0); }
+  function scheduleIsOpen(cat, now=new Date()){
+    const sc=CATEGORY_SCHEDULES[cat.id || ('cat_'+MENU.indexOf(cat))];
+    if(!sc || sc.enabled!==true) return true;
+    const day=now.getDay(), mins=now.getHours()*60+now.getMinutes();
+    const days=Array.isArray(sc.days)?sc.days:[];
+    const start=timeToMinutes(sc.start), end=timeToMinutes(sc.end);
+    if(start===end) return days.includes(day);
+    if(start<end) return days.includes(day) && mins>=start && mins<end;
+    // overnight schedule: e.g. 11:00 -> 04:40
+    if(mins>=start) return days.includes(day);
+    const prev=(day+6)%7;
+    return mins<end && days.includes(prev);
+  }
+  function scheduleText(cat){
+    const sc=CATEGORY_SCHEDULES[cat.id || ('cat_'+MENU.indexOf(cat))];
+    if(!sc || sc.enabled!==true) return 'متاح طوال الوقت';
+    const days=(sc.days||[]).map(d=>WEEK_DAYS[d]).join('، ') || 'مفيش أيام';
+    return `${days} — ${sc.start} إلى ${sc.end}`;
+  }
+  function getNextScheduleEvent(){
+    const now=new Date(); let best=null;
+    MENU.forEach(cat=>{ const sc=CATEGORY_SCHEDULES[cat.id || ('cat_'+MENU.indexOf(cat))]; if(!sc||sc.enabled!==true||!Array.isArray(sc.days)||!sc.days.length)return;
+      for(let d=0;d<8;d++){ for(const type of ['start','end']){ const day=(now.getDay()+d)%7; if(!sc.days.includes(day))continue; const [h,m]=String(sc[type]).split(':').map(Number); const dt=new Date(now); dt.setDate(now.getDate()+d); dt.setHours(h,m,0,0); if(dt>now && (!best||dt<best.dt)) best={dt,type,cat}; }} });
+    return best;
+  }
+  function updateScheduleTimer(){
+    const banner=document.getElementById('scheduleTimerBanner'); if(!banner)return;
+    const events=MENU.map(cat=>({cat,open:scheduleIsOpen(cat)}));
+    const closed=events.filter(x=>!x.open);
+    const next=getNextScheduleEvent();
+    if(closed.length){ banner.classList.add('show'); banner.textContent=`⏱️ بعض الأقسام مقفولة حسب المواعيد حالياً — ${next?`أقرب تغيير: ${next.cat.category} ${next.type==='start'?'يفتح':'يقفل'} الساعة ${next.dt.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})}`:''}`; }
+    else if(next){ banner.classList.add('show'); banner.textContent=`⏱️ مواعيد التشغيل مفعّلة — أقرب موعد: ${next.cat.category} ${next.type==='start'?'يفتح':'يقفل'} الساعة ${next.dt.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})}`; }
+    else banner.classList.remove('show');
+  }
+  setInterval(()=>{
+    let changed=false; MENU.forEach(cat=>{ const should=scheduleIsOpen(cat); const key=cat.id||('cat_'+MENU.indexOf(cat)); if(cat._scheduleOpen!==should){cat._scheduleOpen=should;changed=true;} });
+    if(changed) renderMenu(); updateScheduleTimer();
+  },1000);
+
+  // ---------- Order statistics ----------
+  const ORDERS_STORAGE_KEY='maxez_orders_v1';
+  function loadOrders(){try{const x=localStorage.getItem(ORDERS_STORAGE_KEY);if(x)return JSON.parse(x);}catch(e){}return [];}
+  let ORDER_LOG=loadOrders();
+  async function syncOrdersFromServer(){const remote=await apiGet('orders');if(Array.isArray(remote)){ORDER_LOG=remote;localStorage.setItem(ORDERS_STORAGE_KEY,JSON.stringify(remote));}}
+  function recordOrder(){
+    const delivery=getSelectedDeliveryFee();
+    const subtotal=Object.values(cart).reduce((sum,x)=>sum+x.price*x.qty,0);
+    const total=subtotal+(delivery.fee||0);
+    const branchId=document.getElementById('branchSelect')?.value || '';
+    const branch=DELIVERY_GROUPS.find(g=>g.id===branchId);
+    const order={id:'ord_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),createdAt:new Date().toISOString(),subtotal,total,deliveryFee:delivery.fee||0,items:Object.values(cart).reduce((n,x)=>n+x.qty,0),branchId,branchName:branch?.label||delivery.group||'—',etaMinutes:Number(branch?.etaMinutes)||45,customerName:document.getElementById('custName')?.value.trim()||''};
+    ORDER_LOG.push(order); if(ORDER_LOG.length>5000) ORDER_LOG=ORDER_LOG.slice(-5000);
+    localStorage.setItem(ORDERS_STORAGE_KEY,JSON.stringify(ORDER_LOG)); apiSet('orders',ORDER_LOG);
+    return order;
+  }
+  function ordersForDate(dateStr){return ORDER_LOG.filter(o=>String(o.createdAt||'').slice(0,10)===dateStr);}
 
   // ---------- Admin: login + edit-from-website panel ----------
   // مستخدمين متعددين: role "admin" = صلاحية كاملة، role "staff" = فتح/قفل الأقسام والأصناف بس
@@ -2145,6 +2395,8 @@
   function openAdminPanel(){
     buildAdminPanel();
     buildAccountSettingsPanel();
+    buildDeliverySettingsPanel();
+    buildScheduleSettingsPanel();
     adminPanel.classList.add('open');
   }
   function closeAdminPanel(){ adminPanel.classList.remove('open'); }
@@ -2415,6 +2667,39 @@
     }
   }
 
+  function buildDeliverySettingsPanel(){
+    const el=document.getElementById('deliverySettingsList'); if(!el)return;
+    el.innerHTML=`<div class="admin-add-row"><label style="display:flex;align-items:center;gap:7px;margin:0;"><input id="deliveryEnabledToggle" type="checkbox" ${DELIVERY_SETTINGS.enabled!==false?'checked':''} style="width:auto;margin:0;"> تفعيل خدمة التوصيل</label></div>` +
+      DELIVERY_GROUPS.map((g,gi)=>{ g.etaMinutes = Number(g.etaMinutes)||45; return `<div class="admin-delivery-group"><div class="admin-delivery-head"><input type="text" value="${escapeAttr(g.label)}" data-delivery-branch="${gi}" placeholder="اسم الفرع"><button class="admin-mini-btn danger" type="button" data-delivery-del-branch="${gi}">حذف الفرع</button></div><div class="admin-add-row"><label style="margin:0;min-width:130px;">⏱️ وقت وصول الطلب</label><input type="number" min="1" max="600" value="${g.etaMinutes}" data-delivery-eta="${gi}" style="max-width:110px;margin:0"><span>دقيقة تقريباً</span></div>${(g.areas||[]).map((a,ai)=>`<div class="admin-delivery-area"><input type="text" value="${escapeAttr(a[0])}" data-delivery-area-name="${gi}" data-area="${ai}"><input type="number" min="0" value="${a[1]}" data-delivery-area-fee="${gi}" data-area="${ai}" title="سعر التوصيل"><button class="admin-mini-btn danger" type="button" data-delivery-del-area="${gi}" data-area="${ai}">حذف</button></div>`).join('')}<div class="admin-add-row"><input type="text" placeholder="اسم منطقة جديدة" id="newAreaName_${gi}"><input type="number" min="0" placeholder="سعر" id="newAreaFee_${gi}" style="max-width:100px"><button class="admin-mini-btn" type="button" data-delivery-add-area="${gi}">+ منطقة</button></div></div>`;}).join('')+`<button class="admin-mini-btn" type="button" id="addDeliveryBranchBtn">+ إضافة فرع</button>`;
+    document.getElementById('deliveryEnabledToggle').addEventListener('change',e=>{DELIVERY_SETTINGS.enabled=e.target.checked;saveDeliverySettings();renderDeliveryOptions();renderTicket();});
+    el.querySelectorAll('[data-delivery-branch]').forEach(inp=>inp.addEventListener('change',()=>{DELIVERY_GROUPS[+inp.dataset.deliveryBranch].label=inp.value.trim()||DELIVERY_GROUPS[+inp.dataset.deliveryBranch].label;saveDeliverySettings();renderDeliveryOptions();}));
+    el.querySelectorAll('[data-delivery-eta]').forEach(inp=>inp.addEventListener('change',()=>{const g=DELIVERY_GROUPS[+inp.dataset.deliveryEta];if(g){g.etaMinutes=Math.min(600,Math.max(1,parseInt(inp.value)||45));saveDeliverySettings();}}));
+    el.querySelectorAll('[data-delivery-area-name]').forEach(inp=>inp.addEventListener('change',()=>{const g=DELIVERY_GROUPS[+inp.dataset.deliveryAreaName],a=+inp.dataset.area;if(g&&g.areas[a])g.areas[a][0]=inp.value.trim()||g.areas[a][0];saveDeliverySettings();renderDeliveryOptions();}));
+    el.querySelectorAll('[data-delivery-area-fee]').forEach(inp=>inp.addEventListener('change',()=>{const g=DELIVERY_GROUPS[+inp.dataset.deliveryAreaFee],a=+inp.dataset.area;if(g&&g.areas[a])g.areas[a][1]=Math.max(0,parseFloat(inp.value)||0);saveDeliverySettings();rebuildDeliveryOptions();renderDeliveryOptions();renderTicket();}));
+    el.querySelectorAll('[data-delivery-del-area]').forEach(btn=>btn.addEventListener('click',()=>{const g=DELIVERY_GROUPS[+btn.dataset.deliveryDelArea],a=+btn.dataset.area;if(!g)return;g.areas.splice(a,1);saveDeliverySettings();rebuildDeliveryOptions();buildDeliverySettingsPanel();renderDeliveryOptions();}));
+    el.querySelectorAll('[data-delivery-del-branch]').forEach(btn=>btn.addEventListener('click',()=>{if(DELIVERY_GROUPS.length<=1){alert('لازم يفضل فرع واحد على الأقل.');return;}DELIVERY_GROUPS.splice(+btn.dataset.deliveryDelBranch,1);saveDeliverySettings();rebuildDeliveryOptions();buildDeliverySettingsPanel();renderDeliveryOptions();}));
+    el.querySelectorAll('[data-delivery-add-area]').forEach(btn=>btn.addEventListener('click',()=>{const gi=+btn.dataset.deliveryAddArea;const n=document.getElementById('newAreaName_'+gi).value.trim();const f=Math.max(0,parseFloat(document.getElementById('newAreaFee_'+gi).value)||0);if(!n){alert('اكتب اسم المنطقة.');return;}DELIVERY_GROUPS[gi].areas.push([n,f]);saveDeliverySettings();rebuildDeliveryOptions();buildDeliverySettingsPanel();renderDeliveryOptions();}));
+    document.getElementById('addDeliveryBranchBtn').addEventListener('click',()=>{const id='branch_'+Math.random().toString(36).slice(2,9);DELIVERY_GROUPS.push({id,label:'فرع جديد',etaMinutes:45,areas:[]});saveDeliverySettings();rebuildDeliveryOptions();buildDeliverySettingsPanel();renderDeliveryOptions();});
+  }
+
+  function buildScheduleSettingsPanel(){
+    const el=document.getElementById('scheduleSettingsList'); if(!el)return;
+    el.innerHTML=MENU.map((cat,i)=>{const key=cat.id||('cat_'+i);const sc=CATEGORY_SCHEDULES[key]||defaultSchedule();return `<div class="admin-schedule-box"><strong>${escapeAttr(cat.category)}</strong><div class="admin-schedule-row"><label style="display:flex;gap:5px;align-items:center;"><input type="checkbox" data-sc-enabled="${key}" ${sc.enabled?'checked':''} style="width:auto;margin:0;"> تشغيل تلقائي</label><input type="time" value="${sc.start||'11:00'}" data-sc-start="${key}"><span>إلى</span><input type="time" value="${sc.end||'04:40'}" data-sc-end="${key}"></div><div class="day-checks">${WEEK_DAYS.map((d,di)=>`<label class="day-check"><input type="checkbox" data-sc-day="${key}" value="${di}" ${(sc.days||[]).includes(di)?'checked':''}>${d}</label>`).join('')}</div><div class="schedule-status">${sc.enabled?'الجدول: '+scheduleText(cat):'الجدول غير مفعّل — القسم متاح دائماً'}</div></div>`;}).join('');
+    el.querySelectorAll('input[data-sc-enabled]').forEach(x=>x.addEventListener('change',()=>saveScheduleField(x.dataset.scEnabled)));
+    el.querySelectorAll('input[data-sc-start],input[data-sc-end],input[data-sc-day]').forEach(x=>x.addEventListener('change',()=>saveScheduleField(x.dataset.scStart||x.dataset.scEnd||x.dataset.scDay)));
+  }
+  function saveScheduleField(key){
+    const box=document.querySelector(`[data-sc-enabled="${CSS.escape(key)}"]`)?.closest('.admin-schedule-box'); if(!box)return;
+    const old=CATEGORY_SCHEDULES[key]||defaultSchedule();
+    old.enabled=box.querySelector(`[data-sc-enabled="${CSS.escape(key)}"]`).checked;
+    old.start=box.querySelector(`[data-sc-start="${CSS.escape(key)}"]`).value||'11:00'; old.end=box.querySelector(`[data-sc-end="${CSS.escape(key)}"]`).value||'04:40';
+    old.days=[...box.querySelectorAll(`[data-sc-day="${CSS.escape(key)}"]:checked`)].map(x=>+x.value);
+    CATEGORY_SCHEDULES[key]=old; saveSchedules(); renderMenu(); updateScheduleTimer(); buildScheduleSettingsPanel();
+  }
+  function buildOrderStatsPanel(){
+    const box=document.getElementById('orderStatsBox'); if(!box)return; const d=new Date().toISOString().slice(0,10); const arr=ordersForDate(d); const total=arr.reduce((s,o)=>s+(Number(o.total)||0),0); box.innerHTML=`<div class="stats-card"><div><strong>${d}</strong></div><div class="stats-grid"><div class="stat-box">عدد الأوردرات<strong>${arr.length}</strong></div><div class="stat-box">إجمالي المبيعات<strong>${total.toFixed(2)} جنيه</strong></div><div class="stat-box">متوسط الأوردر<strong>${arr.length?(total/arr.length).toFixed(2):'0.00'} جنيه</strong></div></div><div class="order-stat-note">الحساب مبني على الأوردرات التي تم تسجيل إرسالها من الموقع. لو العميل فتح واتساب ولم يكمل الطلب، يفضل اعتباره محاولة طلب وليس أوردر مؤكد.</div></div>`;
+  }
+
   // ---------- Account settings: password / WhatsApp numbers / staff users ----------
   function buildPaymentMethodsSettings(){
     paymentMethodsListEl.innerHTML = PAYMENT_METHODS.map(pm => `
@@ -2593,6 +2878,8 @@
     buildAccountSettingsPanel();
   });
 
+  document.getElementById('showOrderStatsBtn').addEventListener('click', buildOrderStatsPanel);
+
   // ---------- Staff panel: open/close categories & items only ----------
   function buildStaffPanel(){
     staffCategoriesEl.innerHTML = MENU.map((cat, catIdx) => {
@@ -2736,6 +3023,10 @@
   syncUsersFromServer();
   syncWhatsAppFromServer();
   syncPaymentFromServer();
+  syncDeliveryFromServer();
+  syncSchedulesFromServer();
+  syncOrdersFromServer();
+  updateScheduleTimer();
 </script>
 
 </body>
