@@ -238,7 +238,7 @@
     font-family:'IBM Plex Mono', monospace;
     font-size:11px;
     color:#a49c8d;
-    text-decoration:line-through;
+    text-decoration:none;
     white-space:nowrap;
   }
   .add-btn{
@@ -972,6 +972,17 @@
       </div>
 
       <div class="admin-settings-section">
+        <h4>📨 إرسال الأوردرات على تليجرام</h4>
+        <label style="display:flex;align-items:center;gap:7px;margin-bottom:10px;"><input id="telegramEnabledToggle" type="checkbox" style="width:auto;margin:0;"> تفعيل إرسال الأوردرات على تليجرام</label>
+        <div class="admin-add-row">
+          <input id="telegramBotTokenInput" type="password" placeholder="Bot Token من BotFather" autocomplete="off">
+          <input id="telegramChatIdInput" type="text" placeholder="Chat ID للجروب/الحساب" autocomplete="off">
+          <button class="admin-mini-btn" id="saveTelegramBtn" type="button">حفظ تليجرام</button><button class="admin-mini-btn" id="testTelegramBtn" type="button">اختبار تليجرام</button>
+        </div>
+        <div class="admin-save-note" id="telegramSettingsNote">الإعداد ده متاح لليوزر الأساسي (الأدمن) فقط.</div>
+      </div>
+
+      <div class="admin-settings-section">
         <h4>طرق الدفع المتاحة للعميل</h4>
         <div id="paymentMethodsList"></div>
         <div class="admin-save-note">فعّل أو أوقف أي طريقة دفع، وحط رقم فودافون كاش/انستاباي اللي هيتحول عليه. الدفع عند الاستلام مفيش ليه رقم.</div>
@@ -1052,7 +1063,7 @@
     <div class="receipt-row"><span>طريقة الاستلام</span><strong id="receiptDelivery">—</strong></div>
     <div class="receipt-row"><span>الإجمالي</span><strong id="receiptTotal">—</strong></div>
     <div class="receipt-eta" id="receiptEta">متوقع الوصول خلال — دقيقة</div>
-    <div style="font-size:12px;color:#6f6a63;text-align:center;line-height:1.7;">تم تسجيل طلبك بنجاح، وسيتم فتح واتساب لإرساله للمطعم.</div>
+    <div style="font-size:12px;color:#6f6a63;text-align:center;line-height:1.7;">تم تسجيل طلبك وفتح واتساب لإرساله للمطعم.</div>
     <div class="receipt-actions"><button type="button" id="closeReceiptBtn">إغلاق</button><button type="button" id="receiptWhatsAppBtn" style="font-weight:800;">فتح واتساب</button></div>
   </div>
 </div>
@@ -1244,6 +1255,27 @@
   }
   let PAYMENT_METHODS = loadPaymentMethods();
   let paymentProofDataUrl = '';
+
+  // ---------- Telegram order delivery (admin only) ----------
+  const TELEGRAM_STORAGE_KEY = 'maxez_telegram_settings_v1';
+  const DEFAULT_TELEGRAM_SETTINGS = { enabled:false, botToken:'', chatId:'' };
+  function loadTelegramSettings(){
+    try{ const saved=localStorage.getItem(TELEGRAM_STORAGE_KEY); if(saved){ const x=JSON.parse(saved); if(x&&typeof x==='object') return {...DEFAULT_TELEGRAM_SETTINGS,...x}; } }catch(e){}
+    return {...DEFAULT_TELEGRAM_SETTINGS};
+  }
+  let TELEGRAM_SETTINGS = loadTelegramSettings();
+  function saveTelegramSettings(){ localStorage.setItem(TELEGRAM_STORAGE_KEY,JSON.stringify(TELEGRAM_SETTINGS)); apiSet('telegram',TELEGRAM_SETTINGS); }
+  async function syncTelegramFromServer(){
+    const remote=await apiGet('telegram');
+    if(remote&&typeof remote==='object'){ TELEGRAM_SETTINGS={...DEFAULT_TELEGRAM_SETTINGS,...remote}; localStorage.setItem(TELEGRAM_STORAGE_KEY,JSON.stringify(TELEGRAM_SETTINGS)); }
+  }
+  async function sendOrderToTelegram(order,message){
+    if(!TELEGRAM_SETTINGS.enabled||!TELEGRAM_SETTINGS.botToken||!TELEGRAM_SETTINGS.chatId) return {ok:false,skipped:true};
+    try{
+      const res=await fetch(`https://api.telegram.org/bot${TELEGRAM_SETTINGS.botToken}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:TELEGRAM_SETTINGS.chatId,text:`🔔 أوردر جديد #${order.id.slice(-8).toUpperCase()}\n\n${message}`,disable_web_page_preview:true})});
+      return {ok:res.ok};
+    }catch(e){ console.warn('Telegram send failed',e); return {ok:false}; }
+  }
   let paymentProofFileName = '';
 
   // ---------- Delivery fees (edit freely) ----------
@@ -1783,12 +1815,13 @@
           </div>
         ` : '';
 
-        const heatChoiceHtml = needsHeatChoice(item) ? `
+        const heatMode=item.heatMode || (item.heatChoice===true?'both':'none');
+        const heatChoiceHtml=heatMode!=='none' ? `
           <div class="heat-choice">
             <label for="heat-${item.id}">الاختيار</label>
             <select class="heat-select" id="heat-${item.id}" aria-label="اختيار حار أو عادي لـ ${item.name}">
-              <option value="regular">عادي</option>
-              <option value="hot">حار</option>
+              ${heatMode==='regular'||heatMode==='both'?'<option value="regular">عادي</option>':''}
+              ${heatMode==='hot'||heatMode==='both'?'<option value="hot">حار</option>':''}
             </select>
           </div>
         ` : '';
@@ -2166,6 +2199,7 @@
     const url = `https://wa.me/${activeNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
     showOrderReceipt(order, url);
+    sendOrderToTelegram(order,message).then(result=>{ if(TELEGRAM_SETTINGS.enabled&&!result.ok&&!result.skipped) console.warn('تعذر إرسال الأوردر إلى تليجرام'); });
 
     if(pm.type !== 'cod' && paymentProofDataUrl){
       setTimeout(() => {
@@ -2189,30 +2223,28 @@
   document.getElementById('closeReceiptBtn').addEventListener('click',()=>document.getElementById('orderReceiptOverlay').classList.remove('show'));
   document.getElementById('receiptWhatsAppBtn').addEventListener('click',()=>{if(lastOpenedWhatsAppUrl)window.open(lastOpenedWhatsAppUrl,'_blank');});
 
-  let orderAlertEnabled=false, lastKnownOrderId=null, orderAlertInterval=null;
+  let orderAlertEnabled=false, lastKnownOrderId=null, orderAlertInterval=null, orderAlertAudioCtx=null;
+  async function unlockOrderAlertAudio(){
+    try{ const Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx)return false; if(!orderAlertAudioCtx)orderAlertAudioCtx=new Ctx(); if(orderAlertAudioCtx.state==='suspended')await orderAlertAudioCtx.resume();
+      const o=orderAlertAudioCtx.createOscillator(),g=orderAlertAudioCtx.createGain(); o.type='square';o.frequency.value=660;g.gain.setValueAtTime(.0001,orderAlertAudioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.12,orderAlertAudioCtx.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,orderAlertAudioCtx.currentTime+.18);o.connect(g);g.connect(orderAlertAudioCtx.destination);o.start();o.stop(orderAlertAudioCtx.currentTime+.2);return true;
+    }catch(e){return false;}
+  }
   function playOrderAlertSound(){
-    try{ const Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx)return; const ctx=new Ctx(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.setValueAtTime(.0001,ctx.currentTime); g.gain.exponentialRampToValueAtTime(.18,ctx.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.55); o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+.6); }catch(e){}
+    try{ if(!orderAlertAudioCtx)return unlockOrderAlertAudio(); if(orderAlertAudioCtx.state==='suspended')orderAlertAudioCtx.resume(); const now=orderAlertAudioCtx.currentTime;
+      [880,660,880,660].forEach((freq,i)=>{const o=orderAlertAudioCtx.createOscillator(),g=orderAlertAudioCtx.createGain(),t=now+i*.24;o.type='square';o.frequency.value=freq;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.16,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.connect(g);g.connect(orderAlertAudioCtx.destination);o.start(t);o.stop(t+.2);});
+      if(navigator.vibrate)navigator.vibrate([180,80,180,80,260]);
+    }catch(e){}
   }
   async function checkForNewOrders(){
-    if(!orderAlertEnabled || !getCurrentUser() || getCurrentUser().role!=='admin') return;
-    const remote=await apiGet('orders');
-    if(!Array.isArray(remote)||!remote.length)return;
-    const newest=remote[remote.length-1];
-    if(lastKnownOrderId===null){ lastKnownOrderId=newest.id; return; }
-    if(newest.id!==lastKnownOrderId){
-      const previous=lastKnownOrderId; lastKnownOrderId=newest.id;
-      playOrderAlertSound();
-      if('Notification' in window && Notification.permission==='granted') new Notification('ماكسز — أوردر جديد 🔔',{body:`أوردر ${newest.id.slice(-8).toUpperCase()} — ${Number(newest.total||0).toFixed(2)} جنيه`});
-      if(document.getElementById('orderStatsBox') && adminPanel.classList.contains('open')) buildOrderStatsPanel();
-    }
+    if(!orderAlertEnabled||!getCurrentUser()||getCurrentUser().role!=='admin')return;
+    const remote=await apiGet('orders'); if(!Array.isArray(remote)||!remote.length)return; const newest=remote[remote.length-1];
+    if(lastKnownOrderId===null){lastKnownOrderId=newest.id;return;}
+    if(newest.id!==lastKnownOrderId){lastKnownOrderId=newest.id;playOrderAlertSound();if('Notification'in window&&Notification.permission==='granted')new Notification('ماكسز — أوردر جديد 🔔',{body:`${newest.customerName||'عميل'} • ${Number(newest.total||0).toFixed(2)} ${CURRENCY}`});}
   }
   async function enableOrderAlerts(){
-    orderAlertEnabled=true;
-    if('Notification' in window && Notification.permission==='default'){ try{ await Notification.requestPermission(); }catch(e){} }
-    playOrderAlertSound();
-    const note=document.getElementById('orderAlertsNote'); if(note) note.textContent=('Notification' in window && Notification.permission==='granted')?'✅ الصوت وإشعارات المتصفح مفعّلين.':'✅ الصوت مفعّل؛ إشعارات المتصفح غير مسموح بها.';
-    checkForNewOrders();
-    clearInterval(orderAlertInterval); orderAlertInterval=setInterval(checkForNewOrders,8000);
+    orderAlertEnabled=true; await unlockOrderAlertAudio(); if('Notification'in window){try{await Notification.requestPermission();}catch(e){}}
+    const note=document.getElementById('orderAlertsNote'); if(note)note.textContent='تم تفعيل الصوت والإشعارات. فحص الأوردرات كل 5 ثواني.';
+    await checkForNewOrders();clearInterval(orderAlertInterval);orderAlertInterval=setInterval(checkForNewOrders,5000);
   }
   document.getElementById('enableOrderAlertsBtn').addEventListener('click',enableOrderAlerts);
 
@@ -2398,6 +2430,8 @@
     buildDeliverySettingsPanel();
     buildScheduleSettingsPanel();
     adminPanel.classList.add('open');
+    // يبدأ مراقبة الأوردرات تلقائياً عند دخول الأدمن؛ ضغطة فتح الداشبورد تعتبر تفعيل للصوت.
+    setTimeout(()=>enableOrderAlerts(),120);
   }
   function closeAdminPanel(){ adminPanel.classList.remove('open'); }
 
@@ -2498,9 +2532,10 @@
                 <input type="text" placeholder="اسم الصنف" value="${escapeAttr(item.name)}" data-role="item-name" data-cat="${catIdx}" data-item="${itemIdx}">
                 <textarea placeholder="الوصف" rows="2" data-role="item-desc" data-cat="${catIdx}" data-item="${itemIdx}">${escapeAttr(item.desc||'')}</textarea>
                 <select data-role="item-heat" data-cat="${catIdx}" data-item="${itemIdx}">
-                  <option value="auto" ${item.heatChoice === undefined ? 'selected' : ''}>حار/عادي: تلقائي</option>
-                  <option value="yes" ${item.heatChoice === true ? 'selected' : ''}>حار/عادي: فيه اختيار</option>
-                  <option value="no" ${item.heatChoice === false ? 'selected' : ''}>حار/عادي: بدون اختيار</option>
+                  <option value="hot" ${item.heatMode === 'hot' ? 'selected' : ''}>حار فقط</option>
+                  <option value="regular" ${item.heatMode === 'regular' ? 'selected' : ''}>عادي فقط</option>
+                  <option value="both" ${item.heatMode === 'both' || (!item.heatMode && item.heatChoice === true) ? 'selected' : ''}>حار / عادي</option>
+                  <option value="none" ${item.heatMode === 'none' || item.heatChoice === false || item.heatChoice === undefined ? 'selected' : ''}>مفيش</option>
                 </select>
               </div>
               <div class="admin-sizes">${sizesHtml}
@@ -2591,11 +2626,7 @@
     if(role === 'item-name'){ item.name = el.value; return; }
     if(role === 'item-desc'){ item.desc = el.value; return; }
     if(role === 'item-heat'){
-      if(el.value === 'yes') item.heatChoice = true;
-      else if(el.value === 'no') item.heatChoice = false;
-      else delete item.heatChoice;
-      renderMenu();
-      return;
+      item.heatMode=el.value; delete item.heatChoice; renderMenu(); return;
     }
 
     const sizeIdx = parseInt(el.dataset.size, 10);
@@ -2619,7 +2650,7 @@
       return;
     }
     if(action === 'add-item'){
-      cat.items.push({ id: newItemId(), name: 'صنف جديد', desc: '', sizes: [{label:'', price:0}], available: true });
+      cat.items.push({ id: newItemId(), name: 'صنف جديد', desc: '', sizes: [{label:'', price:0}], available: true, heatMode:'none' });
       buildAdminPanel();
       return;
     }
@@ -2744,6 +2775,26 @@
     newPassInput2.value = '';
 
     buildPaymentMethodsSettings();
+
+    const tgEnabled=document.getElementById('telegramEnabledToggle'), tgToken=document.getElementById('telegramBotTokenInput'), tgChat=document.getElementById('telegramChatIdInput'), tgNote=document.getElementById('telegramSettingsNote');
+    if(tgEnabled){
+      tgEnabled.checked=TELEGRAM_SETTINGS.enabled===true; tgToken.value=TELEGRAM_SETTINGS.botToken||''; tgChat.value=TELEGRAM_SETTINGS.chatId||'';
+      tgNote.textContent=TELEGRAM_SETTINGS.enabled?'تليجرام مفعّل — الأوردرات الجديدة هتتبعت تلقائياً.':'تليجرام متوقف حالياً.';
+      document.getElementById('saveTelegramBtn').onclick=()=>{
+        const enabled=!!tgEnabled.checked, token=tgToken.value.trim(), chat=tgChat.value.trim();
+        if(enabled&&(!token||!chat)){ alert('لازم تحط Bot Token و Chat ID قبل التفعيل.'); return; }
+        TELEGRAM_SETTINGS={enabled,botToken:token,chatId:chat}; saveTelegramSettings();
+        tgNote.textContent=enabled?'تم تفعيل تليجرام ✓':'تم إيقاف تليجرام.';
+      };
+      document.getElementById('testTelegramBtn').onclick=async()=>{
+        const token=tgToken.value.trim(), chat=tgChat.value.trim();
+        if(!token||!chat){ alert('اكتب Bot Token و Chat ID الأول.'); return; }
+        try{
+          const res=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chat,text:'✅ اختبار تليجرام — ماكسز شغال تمام.'})});
+          if(res.ok){tgNote.textContent='تم إرسال رسالة الاختبار بنجاح ✓';} else {tgNote.textContent='فشل الاختبار — راجع Bot Token و Chat ID.';}
+        }catch(e){tgNote.textContent='فشل الاتصال بتليجرام من المتصفح.';}
+      };
+    }
 
     waNumbersListEl.innerHTML = WHATSAPP_NUMBERS.map(w => `
       <div class="admin-wa-row">
@@ -3023,6 +3074,7 @@
   syncUsersFromServer();
   syncWhatsAppFromServer();
   syncPaymentFromServer();
+  syncTelegramFromServer();
   syncDeliveryFromServer();
   syncSchedulesFromServer();
   syncOrdersFromServer();
