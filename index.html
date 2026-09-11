@@ -1251,7 +1251,19 @@
       const saved = localStorage.getItem(PAYMENT_STORAGE_KEY);
       if(saved){
         const parsed = JSON.parse(saved);
-        if(Array.isArray(parsed) && parsed.length) return parsed;
+        if(Array.isArray(parsed) && parsed.length){
+          // حافظ على طرق الدفع الأساسية حتى لو كانت النسخة المحفوظة قديمة أو ناقصة
+          const byId = new Map(parsed.map(pm => [pm.id, pm]));
+          const merged = DEFAULT_PAYMENT_METHODS.map(def => byId.has(def.id)
+            ? {...def, ...byId.get(def.id)}
+            : {...def}
+          );
+          // احتفظ بأي طرق دفع إضافية أنشأها الأدمن
+          parsed.forEach(pm => {
+            if(pm && pm.id && !merged.some(x => x.id === pm.id)) merged.push(pm);
+          });
+          return merged;
+        }
       }
     }catch(e){}
     return JSON.parse(JSON.stringify(DEFAULT_PAYMENT_METHODS));
@@ -1263,7 +1275,14 @@
   async function syncPaymentFromServer(){
     const remote = await apiGet('payment');
     if(Array.isArray(remote) && remote.length){
-      PAYMENT_METHODS = remote;
+      // ادمج إعدادات السيرفر مع الطرق الأساسية بدل استبدالها بقائمة ناقصة
+      const byId = new Map(remote.map(pm => [pm.id, pm]));
+      PAYMENT_METHODS = DEFAULT_PAYMENT_METHODS.map(def =>
+        byId.has(def.id) ? {...def, ...byId.get(def.id)} : {...def}
+      );
+      remote.forEach(pm => {
+        if(pm && pm.id && !PAYMENT_METHODS.some(x => x.id === pm.id)) PAYMENT_METHODS.push(pm);
+      });
       localStorage.setItem(PAYMENT_STORAGE_KEY, JSON.stringify(PAYMENT_METHODS));
       if(typeof renderPaymentOptions === 'function') renderPaymentOptions();
     }
@@ -1991,6 +2010,10 @@ function getSelectedDeliveryFee(){
 
   function renderPaymentOptions(){
     const select = document.getElementById('paymentMethod');
+    if(!select) return;
+    if(!Array.isArray(PAYMENT_METHODS) || !PAYMENT_METHODS.length){
+      PAYMENT_METHODS = JSON.parse(JSON.stringify(DEFAULT_PAYMENT_METHODS));
+    }
     const enabled = getEnabledPaymentMethods();
     const current = select.value;
     select.innerHTML =
