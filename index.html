@@ -83,7 +83,19 @@
     .wrap{grid-template-columns:1fr; padding-bottom:40px;}
   }
 
-  /* ---------- Menu ---------- */
+  
+   .delivery-combined-search{position:relative;}
+   .delivery-combined-search .combined-delivery-label{display:block;font-weight:800;margin-bottom:7px;}
+   .delivery-combined-search #areaSearch{min-height:52px;font-size:16px;font-weight:700;border:2px solid var(--gold);box-shadow:0 4px 14px rgba(33,29,26,.08);}
+   .area-results{margin-top:8px;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;}
+   .area-result{width:100%;text-align:right;background:#fff;border:1px solid #ddd;border-radius:10px;padding:11px 13px;font-weight:700;cursor:pointer;}
+   .area-result:hover{border-color:var(--gold);box-shadow:0 2px 8px rgba(0,0,0,.08);}
+   .area-result small{opacity:.7;font-weight:600;}
+
+   .delivery-combined-search .combined-hint{font-size:11px;color:#7a746c;margin-top:5px;}
+   #deliveryZone{display:none!important;}
+
+   /* ---------- Menu ---------- */
   .category{
     margin-bottom:38px;
     scroll-margin-top:86px;
@@ -842,7 +854,8 @@
     background:var(--sage);
     color:#fff;
   }
-  .payment-number-note{
+  .payment-choice-highlight{font-size:17px!important;font-weight:800!important;min-height:52px!important;padding:13px 16px!important;border:2px solid var(--gold)!important;box-shadow:0 4px 14px rgba(33,29,26,.10);}
+   .payment-number-note{
     font-family:'IBM Plex Mono', monospace;
     font-size:13px;
     background:rgba(201,154,59,.12);
@@ -1103,13 +1116,15 @@
           </select>
         </div>
 
-        <div class="area-search-wrap" id="areaSearchWrap">
-          <label for="areaSearch">ابحث عن منطقتك داخل الفرع</label>
-          <input id="areaSearch" type="search" placeholder="اختار الفرع ثم اكتب اسم المنطقة..." autocomplete="off">
+        <div class="area-search-wrap delivery-combined-search" id="areaSearchWrap">
+          <label class="combined-delivery-label" for="areaSearch">اختار منطقة التوصيل</label>
+          <input id="areaSearch" type="search" placeholder="ابحث عن اسم المنطقة..." autocomplete="off">
+          <div class="combined-hint">اختار الفرع، وبعدها اكتب اسم المنطقة</div>
+          <div class="area-results" id="areaResults"></div>
           <div class="area-count" id="areaCount"></div>
         </div>
 
-        <label for="deliveryZone">منطقة التوصيل</label>
+        <label for="deliveryZone" style="display:none">منطقة التوصيل</label>
         <select id="deliveryZone" disabled>
           <option value="">اختار الفرع أولاً</option>
         </select>
@@ -1136,7 +1151,7 @@
         </div>
         <div>
           <label for="paymentMethod">طريقة الدفع</label>
-          <select id="paymentMethod">
+          <select id="paymentMethod" class="payment-choice-highlight">
             <option value="">اختار طريقة الدفع</option>
           </select>
         </div>
@@ -1751,6 +1766,13 @@
   }
 
   let MENU = loadMenu();
+    // قسم عروض الاتنين — يبدأ فاضي ويمكن التحكم في اسمه ومواعيده من الداشبورد
+    if(!MENU.some(c => c.category === 'عروض الاتنين')){
+      MENU.push({id:'cat_monday_offers', category:'عروض الاتنين', items:[], available:true});
+      localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(MENU));
+      apiSet('menu', MENU);
+    }
+
 
   // ---------- State (in-memory only, no storage) ----------
   const cart = {}; // variantId -> { name, price, qty }
@@ -1833,7 +1855,7 @@
           return `
             <div class="size-row">
               ${sz.label ? `<span class="size-label">${sz.label}</span>` : ``}
-              ${sz.was ? `<span class="was-price">${sz.was} ${CURRENCY}</span>` : ``}
+              
               <span class="item-price">${sz.price} ${CURRENCY}</span>
               <button class="add-btn" data-id="${vid}">إضافة</button>
             </div>
@@ -1878,102 +1900,69 @@
   }
 
 
-  function renderDeliveryOptions(){
-    const branchSelect = document.getElementById('branchSelect');
-    const areaSearch = document.getElementById('areaSearch');
-    const areaSearchWrap = document.getElementById('areaSearchWrap');
-    const areaCount = document.getElementById('areaCount');
-    const select = document.getElementById('deliveryZone');
-
-    if(DELIVERY_SETTINGS.enabled === false){
-      branchSelect.innerHTML = '<option value="">التوصيل متوقف حالياً</option>';
-      branchSelect.disabled = true; areaSearch.value=''; areaSearch.disabled=true; select.disabled=true;
-      select.innerHTML = '<option value="">خدمة التوصيل متوقفة حالياً</option>';
-      areaCount.textContent = '';
-      return;
-    }
-    branchSelect.disabled = false; areaSearch.disabled=false;
-
-    // زر/اختيار الفرع مستقل عن سيرش المنطقة، مع الحفاظ على كل المنتجات كما هي.
-    branchSelect.innerHTML =
-      '<option value="">اختار الفرع أولاً</option>' +
-      DELIVERY_GROUPS.map(group =>
-        `<option value="${group.id}">${group.label}</option>`
-      ).join('');
-
-    // السيرش يظل ظاهرًا، لكنه لا يعرض مناطق إلا بعد اختيار الفرع.
-    areaSearchWrap.style.display = 'block';
-
-    function normalizeArabic(value){
-      return String(value || '')
-        .toLowerCase()
-        .replace(/[أإآ]/g, 'ا')
-        .replace(/ى/g, 'ي')
-        .replace(/ة/g, 'ه')
-        .replace(/ؤ/g, 'و')
-        .replace(/ئ/g, 'ي')
-        .replace(/ـ/g, '')
-        .trim();
-    }
-
-    function renderAreas(){
-      const branchId = branchSelect.value;
-      const group = DELIVERY_GROUPS.find(g => g.id === branchId);
-      const query = normalizeArabic(areaSearch.value);
-
-      if(!group){
-        select.disabled = true;
-        select.innerHTML = '<option value="">اختار الفرع أولاً</option>';
-        areaCount.textContent = 'اختار الفرع أولاً ثم اكتب اسم منطقتك في السيرش';
-        return;
-      }
-
-      const filtered = group.areas
-        .map(([label, fee], index) => ({ label, fee, index }))
-        .filter(({label}) => !query || normalizeArabic(label).includes(query));
-
-      select.disabled = false;
-      select.innerHTML =
-        '<option value="">اختار منطقة التوصيل</option>' +
-        filtered.map(({label, fee, index}) =>
-          `<option value="${group.id}-${index}">${label} — ${fee} ${CURRENCY}</option>`
-        ).join('');
-
-      areaCount.textContent = query
-        ? (filtered.length ? `تم العثور على ${filtered.length} منطقة في ${group.label}` : 'مفيش منطقة مطابقة في الفرع ده')
-        : `${group.areas.length} منطقة متاحة في ${group.label}`;
-
-      if(select.dataset.selectedValue && filtered.some(({index}) =>
-        `${group.id}-${index}` === select.dataset.selectedValue
-      )){
-        select.value = select.dataset.selectedValue;
-      } else {
-        select.value = '';
-        select.dataset.selectedValue = '';
-      }
-    }
-
-    // تغيير الفرع = تصفير البحث وإظهار مناطق الفرع الجديد.
-    branchSelect.addEventListener('change', () => {
-      areaSearch.value = '';
-      select.dataset.selectedValue = '';
-      renderAreas();
-      renderTicket();
-    });
-
-    // الكتابة في السيرش تصفي مناطق الفرع المختار فورًا.
-    areaSearch.addEventListener('input', renderAreas);
-
-    select.addEventListener('change', () => {
-      select.dataset.selectedValue = select.value;
-      renderTicket();
-    });
-
-    select.dataset.selectedValue = '';
-    renderAreas();
+  function normalizeArabic(text){
+    return String(text||'').toLowerCase()
+      .replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه')
+      .replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/َ|ً|ُ|ٌ|ِ|ٍ|ْ|ّ/g,'')
+      .replace(/ـ/g,'').trim();
   }
 
-  function getSelectedDeliveryFee(){
+  function renderDeliveryOptions(){
+      const branchSelect=document.getElementById('branchSelect');
+      const areaSearch=document.getElementById('areaSearch');
+      const areaCount=document.getElementById('areaCount');
+      const areaResults=document.getElementById('areaResults');
+      const select=document.getElementById('deliveryZone');
+      if(!branchSelect||!areaSearch||!select) return;
+      if(DELIVERY_SETTINGS.enabled===false){
+        branchSelect.innerHTML='<option value="">التوصيل متوقف حالياً</option>';
+        branchSelect.disabled=true; areaSearch.value=''; areaSearch.disabled=true;
+        select.disabled=true; select.innerHTML='<option value="">خدمة التوصيل متوقفة حالياً</option>';
+        if(areaResults) areaResults.innerHTML=''; if(areaCount) areaCount.textContent=''; return;
+      }
+      branchSelect.disabled=false; areaSearch.disabled=!branchSelect.value; select.disabled=true; select.style.display='none';
+      branchSelect.innerHTML='<option value="">اختار الفرع</option>'+DELIVERY_GROUPS.map(g=>`<option value="${escapeAttr(g.id)}">${escapeAttr(g.label)}</option>`).join('');
+
+      function getAreasForBranch(){
+        const gid=branchSelect.value; const g=DELIVERY_GROUPS.find(x=>x.id===gid);
+        return (g&&g.areas||[]).map((a,i)=>({id:`${gid}-${i}`,label:a[0],fee:a[1],group:g}));
+      }
+      function showMatches(){
+        const areas=getAreasForBranch(), q=normalizeArabic(areaSearch.value||'');
+        const matches=q ? areas.filter(o=>normalizeArabic(o.label).includes(q)).sort((a,b)=>{
+          const aa=normalizeArabic(a.label),bb=normalizeArabic(b.label);
+          return (aa.indexOf(q)-bb.indexOf(q)) || (aa.length-bb.length);
+        }).slice(0,20) : [];
+        if(areaResults){
+          areaResults.innerHTML=matches.map(o=>`<button type="button" class="area-result" data-area-id="${escapeAttr(o.id)}">${escapeAttr(o.label)} <small>— ${o.fee} ${CURRENCY}</small></button>`).join('');
+          areaResults.querySelectorAll('.area-result').forEach(btn=>btn.addEventListener('click',()=>{
+            select.value=btn.dataset.areaId;
+            const chosen=areas.find(o=>o.id===btn.dataset.areaId);
+            if(chosen) areaSearch.value=chosen.label;
+            areaResults.innerHTML='';
+            if(areaCount) areaCount.textContent=chosen ? `${chosen.label} — ${chosen.fee} ${CURRENCY}` : '';
+            updateTotals();
+          }));
+        }
+        if(areaCount) areaCount.textContent=q ? `${matches.length} نتيجة` : (branchSelect.value ? 'اكتب اسم المنطقة للبحث' : '');
+      }
+      function refreshAreaSearch(){
+        select.innerHTML='<option value="">اختار المنطقة</option>'; select.value='';
+        areaSearch.value=''; areaSearch.disabled=!branchSelect.value;
+        areaSearch.placeholder=branchSelect.value ? 'اكتب اسم المنطقة...' : 'اختار الفرع أولاً...';
+        if(areaResults) areaResults.innerHTML='';
+        if(areaCount) areaCount.textContent=branchSelect.value ? 'اكتب اسم المنطقة للبحث' : '';
+        updateTotals();
+      }
+      if(!branchSelect.dataset.deliveryBound){
+        branchSelect.addEventListener('change',refreshAreaSearch);
+        areaSearch.addEventListener('input',showMatches);
+        branchSelect.dataset.deliveryBound='1';
+      }
+      refreshAreaSearch();
+  }
+    
+function getSelectedDeliveryFee(){
     const branchSelect = document.getElementById('branchSelect');
     const select = document.getElementById('deliveryZone');
 
@@ -2196,6 +2185,7 @@
 
     const message = buildWhatsAppMessage();
     const order = recordOrder();
+      sendOrderToTelegram(order).catch(()=>{});
     const url = `https://wa.me/${activeNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
     showOrderReceipt(order, url);
@@ -2617,7 +2607,7 @@
     const cat = MENU[catIdx];
     if(!cat) return;
 
-    if(role === 'cat-name'){ cat.category = el.value; return; }
+    if(role === 'cat-name'){ cat.category = el.value; if(!el.dataset.saved){ el.dataset.saved='1'; } return; }
 
     const itemIdx = parseInt(el.dataset.item, 10);
     const item = cat.items[itemIdx];
@@ -2698,7 +2688,11 @@
     }
   }
 
-  function buildDeliverySettingsPanel(){
+  adminCategoriesEl.addEventListener('change', (e) => {
+      const el=e.target; if(el.dataset.role==='cat-name'){ const ci=parseInt(el.dataset.cat,10); if(MENU[ci]){ saveMenu(); renderMenu(); buildAdminPanel(); } }
+    });
+    
+    function buildDeliverySettingsPanel(){
     const el=document.getElementById('deliverySettingsList'); if(!el)return;
     el.innerHTML=`<div class="admin-add-row"><label style="display:flex;align-items:center;gap:7px;margin:0;"><input id="deliveryEnabledToggle" type="checkbox" ${DELIVERY_SETTINGS.enabled!==false?'checked':''} style="width:auto;margin:0;"> تفعيل خدمة التوصيل</label></div>` +
       DELIVERY_GROUPS.map((g,gi)=>{ g.etaMinutes = Number(g.etaMinutes)||45; return `<div class="admin-delivery-group"><div class="admin-delivery-head"><input type="text" value="${escapeAttr(g.label)}" data-delivery-branch="${gi}" placeholder="اسم الفرع"><button class="admin-mini-btn danger" type="button" data-delivery-del-branch="${gi}">حذف الفرع</button></div><div class="admin-add-row"><label style="margin:0;min-width:130px;">⏱️ وقت وصول الطلب</label><input type="number" min="1" max="600" value="${g.etaMinutes}" data-delivery-eta="${gi}" style="max-width:110px;margin:0"><span>دقيقة تقريباً</span></div>${(g.areas||[]).map((a,ai)=>`<div class="admin-delivery-area"><input type="text" value="${escapeAttr(a[0])}" data-delivery-area-name="${gi}" data-area="${ai}"><input type="number" min="0" value="${a[1]}" data-delivery-area-fee="${gi}" data-area="${ai}" title="سعر التوصيل"><button class="admin-mini-btn danger" type="button" data-delivery-del-area="${gi}" data-area="${ai}">حذف</button></div>`).join('')}<div class="admin-add-row"><input type="text" placeholder="اسم منطقة جديدة" id="newAreaName_${gi}"><input type="number" min="0" placeholder="سعر" id="newAreaFee_${gi}" style="max-width:100px"><button class="admin-mini-btn" type="button" data-delivery-add-area="${gi}">+ منطقة</button></div></div>`;}).join('')+`<button class="admin-mini-btn" type="button" id="addDeliveryBranchBtn">+ إضافة فرع</button>`;
