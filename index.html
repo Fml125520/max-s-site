@@ -2177,7 +2177,8 @@ function getSelectedDeliveryFee(){
       return;
     }
 
-    const activeNumber = getActiveWhatsAppNumber();
+    let activeNumber = String(getActiveWhatsAppNumber() || '').replace(/\D/g,'');
+    if(activeNumber.startsWith('0')) activeNumber = '20' + activeNumber.slice(1);
     if(!activeNumber){
       alert('مفيش رقم واتساب مفعّل دلوقتي. لازم تفتح رقم من لوحة التحكم الأول.');
       return;
@@ -2187,7 +2188,10 @@ function getSelectedDeliveryFee(){
     const order = recordOrder();
       sendOrderToTelegram(order).catch(()=>{});
     const url = `https://wa.me/${activeNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    const waWindow = window.open(url, '_blank');
+    if(!waWindow){
+      alert('المتصفح منع فتح واتساب. اسمح بفتح النوافذ المنبثقة للموقع ثم اضغط إرسال الأوردر مرة تانية.');
+    }
     showOrderReceipt(order, url);
     sendOrderToTelegram(order,message).then(result=>{ if(TELEGRAM_SETTINGS.enabled&&!result.ok&&!result.skipped) console.warn('تعذر إرسال الأوردر إلى تليجرام'); });
 
