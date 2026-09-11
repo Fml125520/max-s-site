@@ -1153,6 +1153,9 @@
           <label for="paymentMethod">طريقة الدفع</label>
           <select id="paymentMethod" class="payment-choice-highlight">
             <option value="">اختار طريقة الدفع</option>
+            <option value="cod">الدفع عند الاستلام</option>
+            <option value="vodafone">فودافون كاش</option>
+            <option value="instapay">انستاباي</option>
           </select>
         </div>
         <div id="paymentTransferBox" style="display:none;">
@@ -1278,7 +1281,7 @@
       // ادمج إعدادات السيرفر مع الطرق الأساسية بدل استبدالها بقائمة ناقصة
       const byId = new Map(remote.map(pm => [pm.id, pm]));
       PAYMENT_METHODS = DEFAULT_PAYMENT_METHODS.map(def =>
-        byId.has(def.id) ? {...def, ...byId.get(def.id)} : {...def}
+        byId.has(def.id) ? {...def, ...byId.get(def.id), enabled:true} : {...def}
       );
       remote.forEach(pm => {
         if(pm && pm.id && !PAYMENT_METHODS.some(x => x.id === pm.id)) PAYMENT_METHODS.push(pm);
@@ -2005,20 +2008,28 @@ function getSelectedDeliveryFee(){
 
   // ---------- Payment method selection ----------
   function getEnabledPaymentMethods(){
-    return PAYMENT_METHODS.filter(pm => pm.enabled !== false);
+    // الطرق الأساسية الثلاثة لازم تفضل متاحة للعميل حتى لو إعداد قديم على السيرفر ناقص/معطّل.
+    const defaultsById = new Map(DEFAULT_PAYMENT_METHODS.map(pm => [pm.id, pm]));
+    const merged = DEFAULT_PAYMENT_METHODS.map(def => {
+      const current = PAYMENT_METHODS.find(pm => pm && pm.id === def.id);
+      return {...def, ...(current || {}), enabled:true};
+    });
+    // احتفظ بأي طرق دفع إضافية أنشأها الأدمن.
+    PAYMENT_METHODS.forEach(pm => {
+      if(pm && pm.id && !defaultsById.has(pm.id) && pm.enabled !== false) merged.push(pm);
+    });
+    return merged;
   }
 
   function renderPaymentOptions(){
     const select = document.getElementById('paymentMethod');
     if(!select) return;
-    if(!Array.isArray(PAYMENT_METHODS) || !PAYMENT_METHODS.length){
-      PAYMENT_METHODS = JSON.parse(JSON.stringify(DEFAULT_PAYMENT_METHODS));
-    }
+    if(!Array.isArray(PAYMENT_METHODS)) PAYMENT_METHODS = [];
     const enabled = getEnabledPaymentMethods();
     const current = select.value;
     select.innerHTML =
       '<option value="">اختار طريقة الدفع</option>' +
-      enabled.map(pm => `<option value="${pm.id}">${escapeAttr(pm.label)}</option>`).join('');
+      enabled.map(pm => `<option value="${escapeAttr(pm.id)}">${escapeAttr(pm.label)}</option>`).join('');
     if(enabled.some(pm => pm.id === current)) select.value = current;
     updatePaymentTransferBox();
   }
