@@ -1929,6 +1929,50 @@
       .replace(/ـ/g,'').trim();
   }
 
+  // ---------- Smarter area search (word-order free, typo tolerant) ----------
+  function searchTokens(text){
+    const digits='٠١٢٣٤٥٦٧٨٩';
+    return normalizeArabic(String(text||'').replace(/[٠-٩]/g,d=>digits.indexOf(d)))
+      .split(/[^\u0621-\u064Aa-z0-9]+/).filter(Boolean)
+      .map(t=>(t.length>3&&t.startsWith('ال'))?t.slice(2):t);
+  }
+  function withinOneEdit(a,b){
+    if(a===b) return true;
+    const la=a.length, lb=b.length;
+    if(Math.abs(la-lb)>1) return false;
+    let i=0,j=0,e=0;
+    while(i<la&&j<lb){
+      if(a[i]===b[j]){i++;j++;continue;}
+      if(++e>1) return false;
+      if(la>lb) i++; else if(lb>la) j++; else {i++;j++;}
+    }
+    return e+(la-i)+(lb-j)<=1;
+  }
+  function matchAreas(areas,query){
+    const qt=searchTokens(query);
+    if(!qt.length) return [];
+    const qFull=normalizeArabic(query);
+    const scored=[];
+    areas.forEach(o=>{
+      const lt=searchTokens(o.label);
+      let score=1;
+      for(const t of qt){
+        if(lt.some(x=>x.includes(t))) continue;
+        if(t.length>=4 && lt.some(x=>withinOneEdit(t,x)||withinOneEdit(t,x.slice(0,t.length)))){ score=2; continue; }
+        score=-1; break;
+      }
+      if(score<0) return;
+      if(score===1 && normalizeArabic(o.label).includes(qFull)) score=0;
+      scored.push({o,score,len:normalizeArabic(o.label).length});
+    });
+    return scored.sort((a,b)=>(a.score-b.score)||(a.len-b.len)).map(x=>x.o);
+  }
+  function emptyAreaMessage(){
+    const num=(typeof getActiveWhatsAppNumber==='function')?getActiveWhatsAppNumber():'';
+    const link=num?` <a href="https://wa.me/${escapeAttr(num)}" target="_blank" rel="noopener" style="font-weight:800;text-decoration:underline;">كلمنا على واتساب</a>`:'';
+    return `<div style="padding:11px 13px;border:1px dashed #ccc;border-radius:10px;font-weight:700;background:#fffdf8;">مش لاقيين المنطقة دي في القايمة. جرّب كلمة تانية أو${link||' كلمنا'}.</div>`;
+  }
+
   function renderDeliveryOptions(){
       const branchSelect=document.getElementById('branchSelect');
       const areaSearch=document.getElementById('areaSearch');
@@ -1951,12 +1995,9 @@
       }
       function showMatches(){
         const areas=getAreasForBranch(), q=normalizeArabic(areaSearch.value||'');
-        const matches=q ? areas.filter(o=>normalizeArabic(o.label).includes(q)).sort((a,b)=>{
-          const aa=normalizeArabic(a.label),bb=normalizeArabic(b.label);
-          return (aa.indexOf(q)-bb.indexOf(q)) || (aa.length-bb.length);
-        }).slice(0,20) : [];
+        const matches=q ? matchAreas(areas,areaSearch.value).slice(0,20) : [];
         if(areaResults){
-          areaResults.innerHTML=matches.map(o=>`<button type="button" class="area-result" data-area-id="${escapeAttr(o.id)}">${escapeAttr(o.label)} <small>— ${o.fee} ${CURRENCY}</small></button>`).join('');
+          areaResults.innerHTML=(q&&!matches.length)?emptyAreaMessage():matches.map(o=>`<button type="button" class="area-result" data-area-id="${escapeAttr(o.id)}">${escapeAttr(o.label)} <small>— ${o.fee} ${CURRENCY}</small></button>`).join('');
           areaResults.querySelectorAll('.area-result').forEach(btn=>btn.addEventListener('click',()=>{
             select.value=btn.dataset.areaId;
             const chosen=areas.find(o=>o.id===btn.dataset.areaId);
@@ -1966,7 +2007,7 @@
             updateTotals();
           }));
         }
-        if(areaCount) areaCount.textContent=q ? `${matches.length} نتيجة` : (branchSelect.value ? 'اكتب اسم المنطقة للبحث' : '');
+        if(areaCount) areaCount.textContent=q ? (matches.length?`${matches.length} نتيجة`:'مفيش نتيجة') : (branchSelect.value ? 'اكتب اسم المنطقة للبحث' : '');
       }
       function refreshAreaSearch(){
         select.innerHTML='<option value="">اختار المنطقة</option>'; select.value='';
